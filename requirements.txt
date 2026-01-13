@@ -1,0 +1,14 @@
+spacy 
+gensim 
+sumy 
+qalsadi 
+nltk
+camel-tools[full]
+pyarabic 
+scikit-learn 
+networkx 
+numpy 
+tashaphyne
+pytextrank 
+sklearn-crfsuite
+
