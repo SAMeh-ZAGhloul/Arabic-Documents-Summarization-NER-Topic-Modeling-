@@ -7517,13 +7517,12 @@ a.anchor-link {
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <p>"""</p>
-<h1 id="Install-CAMeL-Tools">Install CAMeL Tools<a class="anchor-link" href="#Install-CAMeL-Tools">¶</a></h1><p>pip install camel-tools scikit-learn networkx numpy</p>
-<h1 id="Download-required-models">Download required models<a class="anchor-link" href="#Download-required-models">¶</a></h1><p>camel_data -i ner-arabert<br/>
+<h1 id="Arabic-Documents-Summarization,-NER-&amp;-Topic-Modeling">Arabic Documents Summarization, NER &amp; Topic Modeling<a class="anchor-link" href="#Arabic-Documents-Summarization,-NER-&amp;-Topic-Modeling">¶</a></h1><h3 id="Install-CAMeL-Tools">Install CAMeL Tools<a class="anchor-link" href="#Install-CAMeL-Tools">¶</a></h3><p>pip install camel-tools scikit-learn networkx numpy</p>
+<h3 id="Download-required-models">Download required models<a class="anchor-link" href="#Download-required-models">¶</a></h3><p>camel_data -i ner-arabert<br/>
 camel_data -i sentiment-analysis-arabert<br/>
 camel_data -i morphology-db-msa-r13<br/>
 camel_data -i disambig-mle-calima-msa-r13</p>
-<p>Components:</p>
-<ul>
+<h2 id="Components:">Components:<a class="anchor-link" href="#Components:">¶</a></h2><ul>
 <li>Preprocessing &amp; Lemmatization (CAMeL Tools)</li>
 <li>Named Entity Recognition (AraBERT)</li>
 <li>Sentiment Analysis (CAMeL Tools)</li>
@@ -7536,15 +7535,13 @@ camel_data -i disambig-mle-calima-msa-r13</p>
 <li>Accuracy for Sentiment</li>
 <li>Coherence for Topic Modeling</li>
 </ul>
-<p>Summarization:</p>
-<ol>
+<h3 id="Summarization:">Summarization:<a class="anchor-link" href="#Summarization:">¶</a></h3><ol>
 <li>Sumy-LexRank, TextRank, LSA</li>
 <li>TF-IDF Baseline</li>
 <li>mT5-XLSum (Abstractive)</li>
 <li>AraBART (Abstractive)</li>
 </ol>
-<p>NER Comparison:</p>
-<ol>
+<h3 id="NER-Comparison:">NER Comparison:<a class="anchor-link" href="#NER-Comparison:">¶</a></h3><ol>
 <li>CAMeL Tools (AraBERT)</li>
 <li>Stanford Stanza</li>
 <li>Hatmimoha (BERT)</li>

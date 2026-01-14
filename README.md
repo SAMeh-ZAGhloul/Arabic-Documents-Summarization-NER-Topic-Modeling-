@@ -1,19 +1,7 @@
 # 🚀 Arabic Documents Summarization, NER & Topic Modeling
 
-A comprehensive Arabic NLP pipeline that combines multiple state-of-the-art models for text summarization, Named Entity Recognition, sentiment analysis, and topic modeling with detailed benchmarking and evaluation metrics.
+A comprehensive Arabic NLP pipeline that combines multiple state-of-the-art models for text summarization, Named Entity Recognition, sentiment analysis, and topic modeling with detailed benchmarking and evaluation metrics (No LLM).
 
-## 📋 Table of Contents
-- [Overview](#overview)
-- [Features](#features)
-- [Installation](#installation)
-- [Architecture](#architecture)
-- [Usage](#usage)
-- [Sample Output](#sample-output)
-- [Performance Metrics](#performance-metrics)
-- [Models & Components](#models--components)
-- [Directory Structure](#directory-structure)
-
----
 
 ## 🎯 Overview
 
@@ -79,61 +67,6 @@ Three models with standardized output:
 
 ---
 
-## 🛠️ Installation
-
-### Prerequisites
-- Python 3.8+
-- CUDA 11.0+ (optional, for GPU acceleration)
-- 8GB RAM minimum
-- ~2.5GB disk space for models
-
-### Step 1: Clone Repository
-```bash
-git clone https://github.com/SAMeh-ZAGhloul/Arabic-Documents-Summarization-NER-Topic-Modeling-.git
-cd Arabic-Documents-Summarization-NER-Topic-Modeling-
-```
-
-### Step 2: Install Core Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-Required packages:
-```
-camel-tools>=1.0.0
-scikit-learn>=1.0.0
-networkx>=2.6
-numpy>=1.21.0
-torch>=1.9.0
-transformers>=4.20.0
-nltk>=3.6.0
-gensim>=4.0.0
-sumy>=0.9.0
-stanza>=1.2.0
-```
-
-### Step 3: Download CAMeL Tools Data
-```bash
-# NER model (541 MB)
-camel_data -i ner-arabert
-
-# Sentiment analyzer (541 MB)
-camel_data -i sentiment-analysis-arabert
-
-# Morphology database (40 MB)
-camel_data -i morphology-db-msa-r13
-
-# Disambiguation database (88 MB)
-camel_data -i disambig-mle-calima-msa-r13
-```
-
-### Step 4: Verify Installation
-```bash
-python -c "import camel_tools; import torch; print('✅ Installation successful')"
-```
-
----
-
 ## 🏗️ Architecture
 
 ### Class Hierarchy
@@ -178,23 +111,7 @@ Raw Arabic Text
 Benchmark Results
 ```
 
----
-
-## 💻 Usage
-
-### Option 1: Jupyter Notebook (Recommended)
-```bash
-jupyter notebook Ar-SUM_NER.ipynb
-```
-
-Then run all cells sequentially.
-
-### Option 2: Python Script
-```bash
-python Ar-SUM_NER.py
-```
-
-### Option 3: Custom Dataset
+### Custom Dataset
 ```python
 from Ar-SUM_NER import UltimatePipeline
 
@@ -214,7 +131,7 @@ pipeline = UltimatePipeline()
 pipeline.run(my_data)
 ```
 
-### Option 4: Individual Components
+### Individual Components
 ```python
 from Ar-SUM_NER import ArabicPreprocessor, ArabicNER, ArabicSummarizer
 
@@ -343,9 +260,6 @@ Coherence (C_V) ∈ [0, 1]
 ```
 Accuracy = Correct Predictions / Total Predictions
 ```
-
----
-
 ## 🔧 Models & Components
 
 ### Model Sizes & Download Times
@@ -393,237 +307,3 @@ Accuracy = Correct Predictions / Total Predictions
 - **Max Input**: 512 tokens
 - **Max Output**: 150 tokens
 
----
-
-## 📁 Directory Structure
-
-```
-Arabic-Documents-Summarization-NER-Topic-Modeling/
-├── Ar-SUM_NER.ipynb              # Main Jupyter notebook
-├── Ar-SUM_NER.py                 # Python script version
-├── requirements.txt              # Dependencies
-├── README.md                      # This file
-├── streamlit-topic-modeling/     # Streamlit web app (optional)
-│   ├── streamlit_topic_modeling/
-│   │   ├── __init__.py
-│   │   ├── app.py
-│   │   └── tests/
-│   ├── data/
-│   ├── requirements.txt
-│   └── setup.py
-└── __pycache__/                  # Python cache (auto-generated)
-```
-
----
-
-## 🎓 Key Classes & Methods
-
-### EvaluationMetrics
-```python
-class EvaluationMetrics:
-    @staticmethod
-    def normalize_arabic(text: str) -> str
-    
-    @staticmethod
-    def rouge_scores(reference: str, hypothesis: str) -> float
-    
-    @staticmethod
-    def ner_metrics(true_entities: list, pred_entities: list) -> float
-```
-
-### ArabicPreprocessor
-```python
-class ArabicPreprocessor:
-    def __init__(self)
-    def normalize(self, text: str) -> str
-    def preprocess(self, text: str) -> list[str]
-```
-
-### ArabicNER
-```python
-class ArabicNER:
-    def __init__(self)
-    def extract_all(self, text: str) -> dict
-    def _camel(self, text: str) -> list[dict]
-    def _hat(self, text: str) -> list[dict]
-    def _stanza(self, text: str) -> list[dict]
-```
-
-### ArabicSummarizer
-```python
-class ArabicSummarizer:
-    def __init__(self, prep: ArabicPreprocessor)
-    def summarize(self, text: str) -> dict[str, str]
-```
-
-### TopicModeler
-```python
-class TopicModeler:
-    def __init__(self, prep: ArabicPreprocessor)
-    def run(self, docs: list[str]) -> tuple[list, float]
-```
-
-### UltimatePipeline
-```python
-class UltimatePipeline:
-    def __init__(self)
-    def run(self, data: list[dict]) -> None
-```
-
----
-
-## 🚨 Troubleshooting
-
-### Issue: "ModuleNotFoundError: No module named 'camel_tools'"
-**Solution**: Install CAMeL Tools
-```bash
-pip install camel-tools
-camel_data -i morphology-db-msa-r13
-```
-
-### Issue: "CUDA out of memory"
-**Solution**: Use CPU instead
-```bash
-export CUDA_VISIBLE_DEVICES=""
-python Ar-SUM_NER.py
-```
-
-### Issue: "Stanza models not found"
-**Solution**: Download Stanza models
-```python
-import stanza
-stanza.download('ar')
-```
-
-### Issue: Model files not found at expected path
-**Solution**: CAMeL Tools stores files in `~/.camel_tools/`. If this fails:
-```bash
-camel_data --list  # List available data
-camel_data -i ner-arabert --data-dir /custom/path
-```
-
----
-
-## 📊 Expected Performance
-
-Based on the 3-document sample dataset:
-
-| Component | Metric | Score | Status |
-|-----------|--------|-------|--------|
-| Summarization | ROUGE-1 (mT5) | ~0.52 | ✅ Good |
-| Summarization | ROUGE-1 (AraBART) | ~0.49 | ✅ Good |
-| NER | F1 (CAMeL) | ~0.82 | ✅ Excellent |
-| Sentiment | Accuracy | 0.89 | ✅ Very Good |
-| Topics | Coherence | ~0.62 | ✅ Good |
-
-**Note**: Scores vary based on dataset quality and size.
-
----
-
-## 🔄 Data Format
-
-### Input Data Structure
-```python
-[
-    {
-        'text': str,                      # Arabic document
-        'reference_summary': str,         # Gold summary
-        'entities': [                     # Annotated entities
-            {'text': str, 'label': str},  # 'PERS', 'LOC', 'ORG', 'MISC'
-            ...
-        ],
-        'sentiment': str                  # 'positive', 'negative', 'neutral'
-    },
-    ...
-]
-```
-
-### Output Format
-```python
-{
-    'summ': {
-        'AraBART': [0.45, 0.50, 0.48],    # ROUGE scores
-        'mT5-XLSum': [0.52, 0.53, 0.51],
-        ...
-    },
-    'ner': {
-        'CAMeL': [0.82, 0.80, 0.85],      # F1 scores
-        'Hatmimoha': [0.75, 0.78, 0.80],
-        ...
-    },
-    'sent': [1, 1, 0]                     # Binary correctness
-}
-```
-
----
-
-## 📚 References
-
-### Papers & Models
-- **AraBERT**: AraBERT: Transformer-based Model for Arabic Language Understanding
-- **AraBART**: A Powerful Pre-trained Model for Arabic
-- **mT5**: mT5: A Massively Multilingual Pre-trained Text-to-Text Transformer
-- **CAMeL Tools**: The CAMeL Tools Suite for Arabic NLP
-
-### Datasets
-- Arabic Wikipedia
-- Arabic News Corpora
-- XLSum (Multilingual)
-
-### Libraries
-- Hugging Face Transformers
-- CAMeL Tools
-- Gensim (Topic Modeling)
-- Sumy (Extractive Summarization)
-- Stanza (Multilingual NLP)
-
----
-
-## 📝 License
-
-This project is provided as-is for research and educational purposes.
-
----
-
-## 👤 Author
-
-**Dr. SAMeh ZAGhloul**
-
-### Repository
-https://github.com/SAMeh-ZAGhloul/Arabic-Documents-Summarization-NER-Topic-Modeling-
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit pull requests or open issues.
-
-### How to Contribute
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 📞 Support
-
-For questions, issues, or suggestions:
-1. Check existing GitHub issues
-2. Review the troubleshooting section above
-3. Open a new issue with detailed information
-
----
-
-## 🙏 Acknowledgments
-
-- Hugging Face 🤗 for the Transformers library
-- CAMeL Tools team for Arabic NLP tools
-- Gensim for topic modeling
-- All open-source contributors
-
----
-
-**Last Updated**: January 2026
-**Status**: Active Development ✅
