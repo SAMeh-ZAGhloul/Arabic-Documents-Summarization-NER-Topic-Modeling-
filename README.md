@@ -2,7 +2,7 @@
 
 A comprehensive Arabic NLP pipeline that combines multiple state-of-the-art models for text summarization, Named Entity Recognition, sentiment analysis, and topic modeling with detailed benchmarking and evaluation metrics (including LLM-based approaches).
 
-## Overview
+## 📋 Overview
 
 This project implements a production-ready Arabic Natural Language Processing pipeline that handles the complete NLP workflow:
 
@@ -24,7 +24,7 @@ All components include:
 
 ---
 
-## Features
+## ⚙️ Features
 
 ### Text Preprocessing
 
@@ -87,7 +87,7 @@ Five models with standardized output:
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 ### Class Hierarchy
 
@@ -181,9 +181,11 @@ summaries = summarizer.summarize(text)
 
 ---
 
-## Sample Output
+## 📊 Sample Output
 
 ### Pipeline Execution Output
+
+<div align="center">
 
 ```
 ======================================================================
@@ -210,7 +212,7 @@ Asking to truncate to max_length but no maximum length is provided and the model
    [LangExtract]: 25.41s - Here's a concise summary of the Arabic text, in Arabic:
 
 **أعلنت أرامكو السعودية عن أرباح قياسية بلغ...
-   [LLM-Only]: 18.67s - Here’s a concise summary of the text in Arabic:
+   [LLM-Only]: 18.67s - Here's a concise summary of the text in Arabic:
 
 **أعلنت أرامكو عن أرباح قياسية بلغت 115 مليار ريال،...
    [AraBART]: 36.47s - اعلنت شركه ارامكو السعوديه، عملاق النفط العالمي واكبر شركه طاقه في العالم من حيث القيمه السوقيه، الي...
@@ -238,10 +240,10 @@ Asking to truncate to max_length but no maximum length is provided and the model
 
 📂 Document 3 (86 words)
 📝 Summarization:
-   [LangExtract]: 40.58s - Here’s a concise summary of the text in Arabic:
+   [LangExtract]: 40.58s - Here's a concise summary of the text in Arabic:
 
 **تُشهد السعودية طفرة في التقنية والابتكار، بفضل مب...
-   [LLM-Only]: 18.69s - Here’s a concise summary of the text in Arabic:
+   [LLM-Only]: 18.69s - Here's a concise summary of the text in Arabic:
 
 **تشهد السعودية طفرة تقنية كبيرة، مدفوعة بمبادرة ال...
    [AraBART]: 41.53s - تشهد المملكه العربيه السعوديه طفره تقنيه هائله، حيث اعلنت جامعه الملكعبدالله للعلوم والتقنيه (كاوست)...
@@ -252,15 +254,15 @@ Asking to truncate to max_length but no maximum length is provided and the model
    [LLM-Only]: True: positive | Pred: positive | Runtime: 4.24s
 📊 Topic Modeling:
 🌍 LANGEXTRACT TOPIC ANALYSIS:
-   Doc 1 Topics: Here’s a list of 3-5 key topics/phrases representing the main subjects of the Arabic text:, **Aramco Financial Results:** (النتائج المالية لأرامكو) - The core of the text is focused on Aramco’s exceptional profits and performance., **Strategic Partnerships:** (اتفاقيات شراكة استراتيجية) - The text highlights Aramco's agreements with TotalEnergies and Shell. | Runtime: 37.24s
-   Doc 2 Topics: Here’s a list of 3-5 key topics/phrases representing the main subjects of the Arabic text:, **The Arab Summit (القمة العربية الطارئة):** The overarching event itself., **The Regional Crisis (الوضع المتفجر في المنطقة):**  This is the dominant concern driving the summit’s agenda. | Runtime: 22.14s
-   Doc 3 Topics: Here’s a list of 3-5 key topics/phrases that represent the main subjects of the Arabic text:, **Artificial Intelligence (AI) Initiative:** This is the central focus, highlighted by the launch of a national AI program by KAUST., **Arabic Localization of AI:**  The text emphasizes the specific goal of adapting AI technologies for the Arab region. | Runtime: 20.14s
+   Doc 1 Topics: Here's a list of 3-5 key topics/phrases representing the main subjects of the Arabic text:, **Aramco Financial Results:** (النتائج المالية لأرامكو) - The core of the text is focused on Aramco's exceptional profits and performance., **Strategic Partnerships:** (اتفاقيات شراكة استراتيجية) - The text highlights Aramco's agreements with TotalEnergies and Shell. | Runtime: 37.24s
+   Doc 2 Topics: Here's a list of 3-5 key topics/phrases representing the main subjects of the Arabic text:, **The Arab Summit (القمة العربية الطارئة):** The overarching event itself., **The Regional Crisis (الوضع المتفجر في المنطقة):**  This is the dominant concern driving the summit's agenda. | Runtime: 22.14s
+   Doc 3 Topics: Here's a list of 3-5 key topics/phrases that represent the main subjects of the Arabic text:, **Artificial Intelligence (AI) Initiative:** This is the central focus, highlighted by the launch of a national AI program by KAUST., **Arabic Localization of AI:**  The text emphasizes the specific goal of adapting AI technologies for the Arab region. | Runtime: 20.14s
 🤖 LLM-ONLY TOPIC ANALYSIS:
-   Doc 1 Topics: Here’s a list of 3-5 key topics/phrases that represent the main subjects of the Arabic text:, **Aramco Financial Results:** (الأرباح المالية الاستثنائية) – The core of the text focuses on Aramco’s exceptional profits and growth., **Strategic Partnerships:** (اتفاقيات شراكة استراتيجية) – The text highlights Aramco’s new collaborations with TotalEnergies and Shell. | Runtime: 21.99s
+   Doc 1 Topics: Here's a list of 3-5 key topics/phrases that represent the main subjects of the Arabic text:, **Aramco Financial Results:** (الأرباح المالية الاستثنائية) – The core of the text focuses on Aramco's exceptional profits and growth., **Strategic Partnerships:** (اتفاقيات شراكة استراتيجية) – The text highlights Aramco's new collaborations with TotalEnergies and Shell. | Runtime: 21.99s
 
-   Doc 2 Topics: Here’s a list of 3-5 key topics/phrases represented in the Arabic text:, **Arab Summit/Emergency Arab Summit:** This refers to the main event itself, the concluding session of the urgent Arab summit held in Amman., **Regional Crisis/Situation in the Region:** The dominant theme is the "explosive situation" in the Middle East, highlighting the core concern driving the summit. | Runtime: 16.47s
+   Doc 2 Topics: Here's a list of 3-5 key topics/phrases represented in the Arabic text:, **Arab Summit/Emergency Arab Summit:** This refers to the main event itself, the concluding session of the urgent Arab summit held in Amman., **Regional Crisis/Situation in the Region:** The dominant theme is the "explosive situation" in the Middle East, highlighting the core concern driving the summit. | Runtime: 16.47s
 
-   Doc 3 Topics: Here’s a list of 3-5 key topics/phrases representing the main subjects of the Arabic text:, **Artificial Intelligence (AI) Initiative:** This is the central theme, highlighted by the launch of the national AI program by KAUST., **Localization of AI Technology:**  The text emphasizes the goal of adapting AI technologies specifically for the Arab region and developing Arabic-language models. | Runtime: 11.99s
+   Doc 3 Topics: Here's a list of 3-5 key topics/phrases representing the main subjects of the Arabic text:, **Artificial Intelligence (AI) Initiative:** This is the central theme, highlighted by the launch of the national AI program by KAUST., **Localization of AI Technology:**  The text emphasizes the goal of adapting AI technologies specifically for the Arab region and developing Arabic-language models. | Runtime: 11.99s
 
 ======================================================================
 🏆 FINAL BENCHMARK SCORES (Accuracy & Runtime)
@@ -287,9 +289,11 @@ Asking to truncate to max_length but no maximum length is provided and the model
 📊 TOPIC MODELING (Coherence & Runtime): Coherence=0.5343, Time=69.71s
 ```
 
+</div>
+
 ---
 
-## Performance Metrics
+## 📈 Performance Metrics
 
 ### Evaluation Metrics Used
 
@@ -337,7 +341,9 @@ Coherence (C_V) ∈ [0, 1]
 Accuracy = Correct Predictions / Total Predictions
 ```
 
-## Models & Components
+---
+
+## 🧰 Models & Components
 
 ### Model Sizes & Download Times
 
