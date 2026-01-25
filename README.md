@@ -187,78 +187,104 @@ summaries = summarizer.summarize(text)
 
 ```
 ======================================================================
-ARABIC NLP PIPELINE: BENCHMARK EDITION
+🚀 ARABIC NLP PIPELINE: BENCHMARK EDITION
 ======================================================================
-  Loading CAMeL Morphology...
-  Loading NER Models...
-  Loading Summarization Models...
-  Loading Ollama with gemma3:4b (LLM-based Multilingual Model)...
-  Topic Modeling: Gensim
+  📚 Loading CAMeL Morphology...
+  🏷️ Loading NER Models...
+Some weights of the model checkpoint at /Users/user/.camel_tools/data/ner/arabert were not used when initializing BertForTokenClassification: ['bert.pooler.dense.bias', 'bert.pooler.dense.weight']
+- This IS expected if you are initializing BertForTokenClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForTokenClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+  📝 Loading Summarization Models...
+You are using the default legacy behaviour of the <class 'transformers.models.t5.tokenization_t5.T5Tokenizer'>. This is expected, and simply means that the `legacy` (previous) behavior will be used so nothing changes for you. If you want to use the new behaviour, set `legacy=False`. This should only be set if you understand what it means, and thoroughly read the reason why this was added as explained in https://github.com/huggingface/transformers/pull/24565
+  📊 Topic Modeling: Gensim
+  🌍 Loading Ollama with gemma3:4b (LLM-based Multilingual Model)...
+  🤖 Loading LLM-Only Benchmark (gemma3:4b on Ollama)...
 
 ======================================================================
 📄 DETAILED ANALYSIS (LARGE DOCS)
 ======================================================================
 
-Document 1 (317 words)
+📂 Document 1 (148 words)
 📝 Summarization:
-   [AraBART]: 0.85s - وقعت شركة أرامكو اتفاقيات استراتيجية مع توتال وشل...
-   [LLM-Only]: 2.45s - gemma3:4b summary output...
+Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
+   [LangExtract]: 25.41s - Here's a concise summary of the Arabic text, in Arabic:
 
+**أعلنت أرامكو السعودية عن أرباح قياسية بلغ...
+   [LLM-Only]: 18.67s - Here’s a concise summary of the text in Arabic:
+
+**أعلنت أرامكو عن أرباح قياسية بلغت 115 مليار ريال،...
+   [AraBART]: 36.47s - اعلنت شركه ارامكو السعوديه، عملاق النفط العالمي واكبر شركه طاقه في العالم من حيث القيمه السوقيه، الي...
 🏷️ NER:
-   Entities found: أرامكو السعودية, أمين الناصر, الظهران, توتال إنرجيز, شل...
-   [LLM-Only]: 1.98s - Entities extracted by LLM
-
+Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
+   Entities found: ارامكو السعودية, ريال, امين حسن الناصر, الظهران, الناصر, توتال انرجيز...
 😊 Sentiment:
-   True: mixed | Pred: positive | Runtime: 0.12s
-   [LLM-Only]: True: mixed | Pred: positive | Runtime: 0.87s
+   True: mixed | Pred: positive | Runtime: 5.79s
+   [LLM-Only]: True: mixed | Pred: positive | Runtime: 4.22s
 
-Document 2 (253 words)
+📂 Document 2 (87 words)
 📝 Summarization:
-   [AraBART]: 0.78s - اختتمت القمة العربية بدعوات للتضامن في مواجهة التحديات...
-   [LLM-Only]: 2.31s - gemma3:4b summary output...
+   [LangExtract]: 24.40s - Here's a concise summary of the Arabic text in Arabic:
 
+**تلقت القمة العربية الطارئة في عمان زخمًا ك...
+   [LLM-Only]: 34.89s - Here's a concise summary of the text in Arabic:
+
+**تلقت القمة العربية الطارئة في عمان إكمال أعمالها ...
+   [AraBART]: 27.12s - اختتمت القمه العربيه الطارئه اعمالها في العاصمه الاردنيه عمان، وسط حضور رفيع المستوي من قاده الدول ا...
 🏷️ NER:
-   Entities found: عمان, عبدالله الثاني, محمد بن سلمان, السيسي...
-   [LLM-Only]: 1.85s - Entities extracted by LLM
-
+   Entities found: عمان, عبدالله الثاني, محمد بن سلمان, عبدالفتاح السيسي, سوريا, واليمن...
 😊 Sentiment:
-   True: neutral | Pred: neutral | Runtime: 0.11s
-   [LLM-Only]: True: neutral | Pred: neutral | Runtime: 0.82s
+   True: neutral | Pred: neutral | Runtime: 4.45s
+   [LLM-Only]: True: neutral | Pred: positive | Runtime: 3.45s
 
-Document 3 (292 words)
+📂 Document 3 (86 words)
 📝 Summarization:
-   [AraBART]: 0.82s - أطلقت جامعة كاوست مبادرة للذكاء الاصطناعي مع جوجل...
-   [LLM-Only]: 2.38s - gemma3:4b summary output...
+   [LangExtract]: 40.58s - Here’s a concise summary of the text in Arabic:
 
+**تُشهد السعودية طفرة في التقنية والابتكار، بفضل مب...
+   [LLM-Only]: 18.69s - Here’s a concise summary of the text in Arabic:
+
+**تشهد السعودية طفرة تقنية كبيرة، مدفوعة بمبادرة ال...
+   [AraBART]: 41.53s - تشهد المملكه العربيه السعوديه طفره تقنيه هائله، حيث اعلنت جامعه الملكعبدالله للعلوم والتقنيه (كاوست)...
 🏷️ NER:
-   Entities found: كاوست, جوجل, مايكروسوفت, مستشفى الملك فيصل...
-   [LLM-Only]: 1.92s - Entities extracted by LLM
-
+   Entities found: المملكة العربية السعودية, جامعة الملكعبدالله للعلوم والتقنية, كاوست, جوجل, ومايكروسوفت, الملك فيصل التخصصي...
 😊 Sentiment:
-   True: positive | Pred: positive | Runtime: 0.13s
-   [LLM-Only]: True: positive | Pred: positive | Runtime: 0.85s
+   True: positive | Pred: positive | Runtime: 4.07s
+   [LLM-Only]: True: positive | Pred: positive | Runtime: 4.24s
+📊 Topic Modeling:
+🌍 LANGEXTRACT TOPIC ANALYSIS:
+   Doc 1 Topics: Here’s a list of 3-5 key topics/phrases representing the main subjects of the Arabic text:, **Aramco Financial Results:** (النتائج المالية لأرامكو) - The core of the text is focused on Aramco’s exceptional profits and performance., **Strategic Partnerships:** (اتفاقيات شراكة استراتيجية) - The text highlights Aramco's agreements with TotalEnergies and Shell. | Runtime: 37.24s
+   Doc 2 Topics: Here’s a list of 3-5 key topics/phrases representing the main subjects of the Arabic text:, **The Arab Summit (القمة العربية الطارئة):** The overarching event itself., **The Regional Crisis (الوضع المتفجر في المنطقة):**  This is the dominant concern driving the summit’s agenda. | Runtime: 22.14s
+   Doc 3 Topics: Here’s a list of 3-5 key topics/phrases that represent the main subjects of the Arabic text:, **Artificial Intelligence (AI) Initiative:** This is the central focus, highlighted by the launch of a national AI program by KAUST., **Arabic Localization of AI:**  The text emphasizes the specific goal of adapting AI technologies for the Arab region. | Runtime: 20.14s
+🤖 LLM-ONLY TOPIC ANALYSIS:
+   Doc 1 Topics: Here’s a list of 3-5 key topics/phrases that represent the main subjects of the Arabic text:, **Aramco Financial Results:** (الأرباح المالية الاستثنائية) – The core of the text focuses on Aramco’s exceptional profits and growth., **Strategic Partnerships:** (اتفاقيات شراكة استراتيجية) – The text highlights Aramco’s new collaborations with TotalEnergies and Shell. | Runtime: 21.99s
+
+   Doc 2 Topics: Here’s a list of 3-5 key topics/phrases represented in the Arabic text:, **Arab Summit/Emergency Arab Summit:** This refers to the main event itself, the concluding session of the urgent Arab summit held in Amman., **Regional Crisis/Situation in the Region:** The dominant theme is the "explosive situation" in the Middle East, highlighting the core concern driving the summit. | Runtime: 16.47s
+
+   Doc 3 Topics: Here’s a list of 3-5 key topics/phrases representing the main subjects of the Arabic text:, **Artificial Intelligence (AI) Initiative:** This is the central theme, highlighted by the launch of the national AI program by KAUST., **Localization of AI Technology:**  The text emphasizes the goal of adapting AI technologies specifically for the Arab region and developing Arabic-language models. | Runtime: 11.99s
 
 ======================================================================
-FINAL BENCHMARK SCORES (Accuracy & Runtime)
+🏆 FINAL BENCHMARK SCORES (Accuracy & Runtime)
 ======================================================================
 
 📝 SUMMARIZATION (ROUGE-1 & Runtime)
-  mT5-XLSum        : Acc=0.5234, Time=0.95s
-  AraBART          : Acc=0.4892, Time=0.82s
-  LLM-Only         : Acc=0.5421, Time=2.38s
-  Sumy-TextRank    : Acc=0.4156, Time=0.45s
-  Sumy-LexRank     : Acc=0.4023, Time=0.42s
-  Sumy-LSA         : Acc=0.3845, Time=0.38s
+  mT5-XLSum       : Acc=0.2083, Time=35.04s
+  Sumy-LexRank    : Acc=0.1828, Time=35.04s
+  Sumy-LSA        : Acc=0.1828, Time=35.04s
+  AraBART         : Acc=0.1798, Time=35.04s
+  LangExtract     : Acc=0.1743, Time=30.13s
+  LLM-Only        : Acc=0.1459, Time=24.08s
 
 🏷️ NER (F1 Score & Runtime)
-  CAMeL            : Acc=0.8234, Time=0.65s
-  Hatmimoha        : Acc=0.7856, Time=0.72s
-  LLM-Only         : Acc=0.8012, Time=1.89s
-  Stanza           : Acc=0.7123, Time=0.89s
+  CAMeL           : Acc=0.8413, Time=6.93s
+  LLM-Only        : Acc=0.7774, Time=24.79s
+  LangExtract     : Acc=0.7350, Time=24.94s
+  Stanza          : Acc=0.7143, Time=6.93s
+  Hatmimoha       : Acc=0.6088, Time=6.93s
 
-😊 SENTIMENT (Accuracy & Runtime): Acc=0.89, Time=0.12s
+😊 SENTIMENT (Accuracy & Runtime): Acc=0.67, Time=4.77s
+   LLM-Only Sentiment Accuracy: 0.33
 
-📊 TOPIC MODELING (Coherence & Runtime): Coherence=0.6234, Time=1.45s
+📊 TOPIC MODELING (Coherence & Runtime): Coherence=0.5343, Time=69.71s
 ```
 
 ---
