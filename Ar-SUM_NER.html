@@ -7540,11 +7540,13 @@ camel_data -i disambig-mle-calima-msa-r13</p>
 <li>TF-IDF Baseline</li>
 <li>mT5-XLSum (Abstractive)</li>
 <li>AraBART (Abstractive)</li>
+<li>LangExtract (Google's Multilingual Model)</li>
 </ol>
 <h3 id="NER-Comparison:">NER Comparison:<a class="anchor-link" href="#NER-Comparison:">¶</a></h3><ol>
 <li>CAMeL Tools (AraBERT)</li>
 <li>Stanford Stanza</li>
 <li>Hatmimoha (BERT)</li>
+<li>LangExtract (Google's Multilingual Model)</li>
 </ol>
 <p>"""</p>
 </div>
@@ -7620,6 +7622,13 @@ camel_data -i disambig-mle-calima-msa-r13</p>
     <span class="n">STANZA_AVAILABLE</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="n">STANZA_AVAILABLE</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="c1"># LangExtract</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">ollama</span>
+    <span class="n">LANGEXTRACT_AVAILABLE</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">LANGEXTRACT_AVAILABLE</span> <span class="o">=</span> <span class="kc">False</span>
 
 <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">'ignore'</span><span class="p">)</span>
 <span class="n">DEVICE</span> <span class="o">=</span> <span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span>
@@ -7832,6 +7841,139 @@ camel_data -i disambig-mle-calima-msa-r13</p>
         <span class="n">corpus</span> <span class="o">=</span> <span class="p">[</span><span class="n">dic</span><span class="o">.</span><span class="n">doc2bow</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">]</span>
         <span class="n">lda</span> <span class="o">=</span> <span class="n">LdaModel</span><span class="p">(</span><span class="n">corpus</span><span class="p">,</span> <span class="n">num_topics</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">id2word</span><span class="o">=</span><span class="n">dic</span><span class="p">,</span> <span class="n">passes</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">lda</span><span class="o">.</span><span class="n">print_topics</span><span class="p">(</span><span class="n">num_words</span><span class="o">=</span><span class="mi">5</span><span class="p">),</span> <span class="n">CoherenceModel</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">lda</span><span class="p">,</span> <span class="n">texts</span><span class="o">=</span><span class="n">texts</span><span class="p">,</span> <span class="n">dictionary</span><span class="o">=</span><span class="n">dic</span><span class="p">,</span> <span class="n">coherence</span><span class="o">=</span><span class="s1">'c_v'</span><span class="p">)</span><span class="o">.</span><span class="n">get_coherence</span><span class="p">()</span>
+
+<span class="c1"># =============================================</span>
+<span class="c1"># 2.5 LANGEXTRACT INTEGRATION</span>
+<span class="c1"># =============================================</span>
+<span class="k">class</span> <span class="nc">LangExtractWrapper</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">available</span> <span class="o">=</span> <span class="n">LANGEXTRACT_AVAILABLE</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">available</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"  🌍 Loading Ollama with gemma3:4b (LLM-based Multilingual Model)..."</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Test connection to Ollama</span>
+                <span class="n">ollama</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s1">'gemma3:4b'</span><span class="p">,</span> <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s1">'role'</span><span class="p">:</span> <span class="s1">'user'</span><span class="p">,</span> <span class="s1">'content'</span><span class="p">:</span> <span class="s1">'test'</span><span class="p">}],</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">'num_predict'</span><span class="p">:</span> <span class="mi">10</span><span class="p">})</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  ❌ Error connecting to Ollama: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">available</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">summarize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">available</span><span class="p">:</span> <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Prepare a prompt for summarization</span>
+            <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""Please provide a concise summary of the following Arabic text. The summary should be in Arabic and capture the main points:</span>
+
+<span class="si">{</span><span class="n">text</span><span class="p">[:</span><span class="mi">2000</span><span class="p">]</span><span class="si">}</span><span class="s2">"""</span>  <span class="c1"># Limit text length to prevent context overflow</span>
+            
+            <span class="n">response</span> <span class="o">=</span> <span class="n">ollama</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="s1">'gemma3:4b'</span><span class="p">,</span>
+                <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s1">'role'</span><span class="p">:</span> <span class="s1">'user'</span><span class="p">,</span> <span class="s1">'content'</span><span class="p">:</span> <span class="n">prompt</span><span class="p">}],</span>
+                <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">'num_predict'</span><span class="p">:</span> <span class="mi">150</span><span class="p">}</span>  <span class="c1"># Limit response length</span>
+            <span class="p">)</span>
+            
+            <span class="n">summary</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s1">'message'</span><span class="p">][</span><span class="s1">'content'</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">summary</span> <span class="k">if</span> <span class="n">summary</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Ollama summary error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">extract_entities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">available</span><span class="p">:</span> <span class="k">return</span> <span class="p">[]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Prepare a prompt for NER</span>
+            <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""Extract named entities from the following Arabic text. Return the results in JSON format with 'text' and 'label' fields. Labels should be one of: 'PERS' (person), 'ORG' (organization), 'LOC' (location), 'MISC' (miscellaneous).</span>
+
+<span class="s2">Example format:</span>
+<span class="s2">[</span>
+<span class="s2">    </span><span class="se">{{</span><span class="s2">"text": "أرامكو السعودية", "label": "ORG"</span><span class="se">}}</span><span class="s2">,</span>
+<span class="s2">    </span><span class="se">{{</span><span class="s2">"text": "أمين الناصر", "label": "PERS"</span><span class="se">}}</span>
+<span class="s2">]</span>
+
+<span class="s2">Text:</span>
+<span class="si">{</span><span class="n">text</span><span class="p">[:</span><span class="mi">2000</span><span class="p">]</span><span class="si">}</span><span class="s2">"""</span>  <span class="c1"># Limit text length to prevent context overflow</span>
+            
+            <span class="n">response</span> <span class="o">=</span> <span class="n">ollama</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="s1">'gemma3:4b'</span><span class="p">,</span>
+                <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s1">'role'</span><span class="p">:</span> <span class="s1">'user'</span><span class="p">,</span> <span class="s1">'content'</span><span class="p">:</span> <span class="n">prompt</span><span class="p">}],</span>
+                <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">'num_predict'</span><span class="p">:</span> <span class="mi">300</span><span class="p">}</span>  <span class="c1"># Allow more space for entity extraction</span>
+            <span class="p">)</span>
+            
+            <span class="n">result</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s1">'message'</span><span class="p">][</span><span class="s1">'content'</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            
+            <span class="c1"># Parse the response to extract entities</span>
+            <span class="n">entities</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="kn">import</span> <span class="nn">json</span> <span class="k">as</span> <span class="nn">json_module</span>
+            <span class="kn">import</span> <span class="nn">re</span> <span class="k">as</span> <span class="nn">re_module</span>
+            
+            <span class="c1"># Look for JSON-like structure in the response</span>
+            <span class="n">json_match</span> <span class="o">=</span> <span class="n">re_module</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">'\[(.*?)\]'</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="n">re_module</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">json_match</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Attempt to parse the JSON portion</span>
+                    <span class="n">json_str</span> <span class="o">=</span> <span class="s1">'['</span> <span class="o">+</span> <span class="n">json_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="s1">']'</span>
+                    <span class="c1"># Clean up the JSON string to make it valid</span>
+                    <span class="n">json_str</span> <span class="o">=</span> <span class="n">re_module</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">'</span><span class="se">\\</span><span class="s1">*'</span><span class="p">,</span> <span class="s1">''</span><span class="p">,</span> <span class="n">json_str</span><span class="p">)</span>  <span class="c1"># Remove extra escapes</span>
+                    <span class="n">entities</span> <span class="o">=</span> <span class="n">json_module</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">json_str</span><span class="p">)</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="c1"># If JSON parsing fails, try to extract entities with regex</span>
+                    <span class="c1"># Look for patterns that match the expected format</span>
+                    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">'</span><span class="se">\n</span><span class="s1">'</span><span class="p">):</span>
+                        <span class="c1"># Match patterns like: {"text": "...", "label": "..."}</span>
+                        <span class="n">matches</span> <span class="o">=</span> <span class="n">re_module</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">'"text":\s*"([^"]+)"[^}}}]*"label":\s*"([^"]+)"'</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">text_val</span><span class="p">,</span> <span class="n">label_val</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">:</span>
+                            <span class="n">entities</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"text"</span><span class="p">:</span> <span class="n">text_val</span><span class="p">,</span> <span class="s2">"label"</span><span class="p">:</span> <span class="n">label_val</span><span class="p">})</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># If no JSON format found, try to extract using regex patterns</span>
+                <span class="c1"># Look for patterns in the response</span>
+                <span class="n">lines</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">'</span><span class="se">\n</span><span class="s1">'</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+                    <span class="c1"># Look for patterns that might contain entity information</span>
+                    <span class="k">if</span> <span class="s1">'text'</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">and</span> <span class="s1">'label'</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                        <span class="c1"># Extract using regex</span>
+                        <span class="n">text_match</span> <span class="o">=</span> <span class="n">re_module</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">'"text":\s*"([^"]+)"'</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+                        <span class="n">label_match</span> <span class="o">=</span> <span class="n">re_module</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">'"label":\s*"([^"]+)"'</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">text_match</span> <span class="ow">and</span> <span class="n">label_match</span><span class="p">:</span>
+                            <span class="n">entities</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                                <span class="s2">"text"</span><span class="p">:</span> <span class="n">text_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                                <span class="s2">"label"</span><span class="p">:</span> <span class="n">label_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                            <span class="p">})</span>
+            
+            <span class="k">return</span> <span class="n">entities</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Ollama NER error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">extract_topics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">available</span><span class="p">:</span> <span class="k">return</span> <span class="p">[]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Prepare a prompt for topic extraction</span>
+            <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""Identify the main topics discussed in the following Arabic text. Return a list of 3-5 key topics/phrases that represent the main subjects.</span>
+
+<span class="s2">Text:</span>
+<span class="si">{</span><span class="n">text</span><span class="p">[:</span><span class="mi">2000</span><span class="p">]</span><span class="si">}</span><span class="s2">"""</span>
+            
+            <span class="n">response</span> <span class="o">=</span> <span class="n">ollama</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="s1">'gemma3:4b'</span><span class="p">,</span>
+                <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s1">'role'</span><span class="p">:</span> <span class="s1">'user'</span><span class="p">,</span> <span class="s1">'content'</span><span class="p">:</span> <span class="n">prompt</span><span class="p">}],</span>
+                <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">'num_predict'</span><span class="p">:</span> <span class="mi">100</span><span class="p">}</span>
+            <span class="p">)</span>
+            
+            <span class="n">result</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s1">'message'</span><span class="p">][</span><span class="s1">'content'</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            
+            <span class="c1"># Extract topics from the response</span>
+            <span class="n">topics</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="kn">import</span> <span class="nn">re</span> <span class="k">as</span> <span class="nn">re_module</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">'</span><span class="se">\n</span><span class="s1">'</span><span class="p">):</span>
+                <span class="c1"># Remove numbering or bullet points</span>
+                <span class="n">cleaned_line</span> <span class="o">=</span> <span class="n">re_module</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">'^[\d\-\*\)\.]+\s*'</span><span class="p">,</span> <span class="s1">''</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">cleaned_line</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">cleaned_line</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">:</span>  <span class="c1"># Meaningful topic</span>
+                    <span class="n">topics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cleaned_line</span><span class="p">)</span>
+            
+            <span class="c1"># Limit to top 3 topics</span>
+            <span class="k">return</span> <span class="n">topics</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Ollama topic extraction error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[]</span>
 </pre></div>
 </div>
 </div>
@@ -7859,6 +8001,7 @@ camel_data -i disambig-mle-calima-msa-r13</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">topics</span> <span class="o">=</span> <span class="n">TopicModeler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prep</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="n">EvaluationMetrics</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sentiment</span> <span class="o">=</span> <span class="n">SentimentAnalyzer</span><span class="o">.</span><span class="n">pretrained</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lang_extract</span> <span class="o">=</span> <span class="n">LangExtractWrapper</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
         <span class="n">scores</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'summ'</span><span class="p">:</span> <span class="p">{},</span> <span class="s1">'ner'</span><span class="p">:</span> <span class="p">{},</span> <span class="s1">'sent'</span><span class="p">:</span> <span class="p">[]}</span>
@@ -7874,18 +8017,39 @@ camel_data -i disambig-mle-calima-msa-r13</p>
             <span class="c1"># 1. Summarization</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">"📝 Summarization:"</span><span class="p">)</span>
             <span class="n">sums</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">summ</span><span class="o">.</span><span class="n">summarize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+            
+            <span class="c1"># Add LangExtract summarization</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lang_extract</span><span class="o">.</span><span class="n">available</span><span class="p">:</span>
+                <span class="n">le_summary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lang_extract</span><span class="o">.</span><span class="n">summarize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">le_summary</span><span class="p">:</span>
+                    <span class="n">sums</span><span class="p">[</span><span class="s1">'LangExtract'</span><span class="p">]</span> <span class="o">=</span> <span class="n">le_summary</span>
+                    <span class="n">r1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">rouge_scores</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">'reference_summary'</span><span class="p">],</span> <span class="n">le_summary</span><span class="p">)</span>
+                    <span class="n">scores</span><span class="p">[</span><span class="s1">'summ'</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">'LangExtract'</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r1</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   [LangExtract]: </span><span class="si">{</span><span class="n">le_summary</span><span class="p">[:</span><span class="mi">100</span><span class="p">]</span><span class="si">}</span><span class="s2">..."</span><span class="p">)</span>
+
             <span class="k">for</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sums</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">r1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">rouge_scores</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">'reference_summary'</span><span class="p">],</span> <span class="n">s</span><span class="p">)</span>
-                <span class="n">scores</span><span class="p">[</span><span class="s1">'summ'</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r1</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">m</span> <span class="o">==</span> <span class="s1">'AraBART'</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   [</span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s2">]: </span><span class="si">{</span><span class="n">s</span><span class="p">[:</span><span class="mi">100</span><span class="p">]</span><span class="si">}</span><span class="s2">..."</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">m</span> <span class="o">!=</span> <span class="s1">'LangExtract'</span><span class="p">:</span>  <span class="c1"># Already processed</span>
+                    <span class="n">r1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">rouge_scores</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">'reference_summary'</span><span class="p">],</span> <span class="n">s</span><span class="p">)</span>
+                    <span class="n">scores</span><span class="p">[</span><span class="s1">'summ'</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r1</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">m</span> <span class="o">==</span> <span class="s1">'AraBART'</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   [</span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s2">]: </span><span class="si">{</span><span class="n">s</span><span class="p">[:</span><span class="mi">100</span><span class="p">]</span><span class="si">}</span><span class="s2">..."</span><span class="p">)</span>
             
             <span class="c1"># 2. NER</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">"🏷️ NER (CAMeL):"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"🏷️ NER:"</span><span class="p">)</span>
             <span class="n">ents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ner</span><span class="o">.</span><span class="n">extract_all</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">m</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">ents</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">f1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">ner_metrics</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">'entities'</span><span class="p">],</span> <span class="n">e</span><span class="p">)</span>
-                <span class="n">scores</span><span class="p">[</span><span class="s1">'ner'</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f1</span><span class="p">)</span>
             
+            <span class="c1"># Add LangExtract NER</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lang_extract</span><span class="o">.</span><span class="n">available</span><span class="p">:</span>
+                <span class="n">le_entities</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lang_extract</span><span class="o">.</span><span class="n">extract_entities</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">le_entities</span><span class="p">:</span>
+                    <span class="n">ents</span><span class="p">[</span><span class="s1">'LangExtract'</span><span class="p">]</span> <span class="o">=</span> <span class="n">le_entities</span>
+                    <span class="n">f1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">ner_metrics</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">'entities'</span><span class="p">],</span> <span class="n">le_entities</span><span class="p">)</span>
+                    <span class="n">scores</span><span class="p">[</span><span class="s1">'ner'</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">'LangExtract'</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f1</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">m</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">ents</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">m</span> <span class="o">!=</span> <span class="s1">'LangExtract'</span><span class="p">:</span>  <span class="c1"># Already processed</span>
+                    <span class="n">f1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">ner_metrics</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">'entities'</span><span class="p">],</span> <span class="n">e</span><span class="p">)</span>
+                    <span class="n">scores</span><span class="p">[</span><span class="s1">'ner'</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f1</span><span class="p">)</span>
+
             <span class="n">c_ents</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="s1">'text'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">ents</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'CAMeL'</span><span class="p">,</span> <span class="p">[])[:</span><span class="mi">6</span><span class="p">]]</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   Entities found: </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">c_ents</span><span class="p">)</span><span class="si">}</span><span class="s2">..."</span><span class="p">)</span>
 
@@ -7917,6 +8081,14 @@ camel_data -i disambig-mle-calima-msa-r13</p>
         
         <span class="n">topics</span><span class="p">,</span> <span class="n">coh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">topics</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">d</span><span class="p">[</span><span class="s1">'text'</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span><span class="p">])</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">📊 TOPIC COHERENCE: </span><span class="si">{</span><span class="n">coh</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        
+        <span class="c1"># LangExtract Topic Modeling Evaluation</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lang_extract</span><span class="o">.</span><span class="n">available</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">🌍 LANGEXTRACT TOPIC ANALYSIS:"</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+                <span class="n">le_topics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lang_extract</span><span class="o">.</span><span class="n">extract_topics</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">'text'</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">le_topics</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   Doc </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> Topics: </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">le_topics</span><span class="p">[:</span><span class="mi">3</span><span class="p">])</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -7942,13 +8114,13 @@ camel_data -i disambig-mle-calima-msa-r13</p>
             <span class="s1">'sentiment'</span><span class="p">:</span> <span class="s1">'mixed'</span>
         <span class="p">},</span>
         <span class="p">{</span>
-            <span class="s1">'text'</span><span class="p">:</span> <span class="s2">"""اختتمت القمة العربية الطارئة أعمالها في العاصمة الأردنية عمان، وسط حضور رفيع المستوى من قادة الدول العربية. وقد هيمن على جدول الأعمال الوضع المتفجر في المنطقة. وأكد العاهل الأردني الملك عبدالله الثاني في كلمته الافتتاحية على ضرورة التضامن العربي لمواجهة التحديات الراهنة. وعلى هامش القمة، عقد الملك عبدالله اجتماعات ثنائية مغلقة مع ولي العهد السعودي الأمير محمد بن سلمان، والرئيس المصري عبدالفتاح السيسي، حيث تم بحث سبل تنسيق المواقف. وناقشت القمة باستفاضة الأوضاع المأساوية في سوريا واليمن، داعية المجتمع الدولي إلى تحمل مسؤولياته لإنهاء الصراعات ووقف نزيف الدم."""</span><span class="p">,</span>
-            <span class="s1">'reference_summary'</span><span class="p">:</span> <span class="s2">"ختام القمة العربية في عمان بدعوات للتضامن، ولقاءات بين الملك عبدالله ومحمد بن سلمان والسيسي."</span><span class="p">,</span>
+            <span class="s1">'text'</span><span class="p">:</span> <span class="s2">"""اختتمت القمة العربية الطارئة أعمالها في العاصمة الأردنية عمان، وسط حضور رفيع المستوى من قادة الدول العربية. وقد هيمن على جدول الأعمال الوضع المتفجر في المنطقة. وأكد العاهل الأردني الملك عبدالله الثاني في كلمته الافتتاحية على ضرورة التضامن العربي لمواجهة التحديات الراهنة. وعلى هامش القمة، عقد الملكعبدالله اجتماعات ثنائية مغلقة مع ولي العهد السعودي الأمير محمد بن سلمان، والرئيس المصري عبدالفتاح السيسي، حيث تم بحث سبل تنسيق المواقف. وناقشت القمة باستفاضة الأوضاع المأساوية في سوريا واليمن، داعية المجتمع الدولي إلى تحمل مسؤولياته لإنهاء الصراعات ووقف نزيف الدم."""</span><span class="p">,</span>
+            <span class="s1">'reference_summary'</span><span class="p">:</span> <span class="s2">"ختام القمة العربية في عمان بدعوات للتضامن، ولقاءات بين الملكعبدالله ومحمد بن سلمان والسيسي."</span><span class="p">,</span>
             <span class="s1">'entities'</span><span class="p">:</span> <span class="p">[{</span><span class="s1">'text'</span><span class="p">:</span> <span class="s1">'عمان'</span><span class="p">,</span> <span class="s1">'label'</span><span class="p">:</span> <span class="s1">'LOC'</span><span class="p">},</span> <span class="p">{</span><span class="s1">'text'</span><span class="p">:</span> <span class="s1">'عبدالله الثاني'</span><span class="p">,</span> <span class="s1">'label'</span><span class="p">:</span> <span class="s1">'PERS'</span><span class="p">},</span> <span class="p">{</span><span class="s1">'text'</span><span class="p">:</span> <span class="s1">'محمد بن سلمان'</span><span class="p">,</span> <span class="s1">'label'</span><span class="p">:</span> <span class="s1">'PERS'</span><span class="p">},</span> <span class="p">{</span><span class="s1">'text'</span><span class="p">:</span> <span class="s1">'عبدالفتاح السيسي'</span><span class="p">,</span> <span class="s1">'label'</span><span class="p">:</span> <span class="s1">'PERS'</span><span class="p">},</span> <span class="p">{</span><span class="s1">'text'</span><span class="p">:</span> <span class="s1">'سوريا'</span><span class="p">,</span> <span class="s1">'label'</span><span class="p">:</span> <span class="s1">'LOC'</span><span class="p">},</span> <span class="p">{</span><span class="s1">'text'</span><span class="p">:</span> <span class="s1">'اليمن'</span><span class="p">,</span> <span class="s1">'label'</span><span class="p">:</span> <span class="s1">'LOC'</span><span class="p">}],</span>
             <span class="s1">'sentiment'</span><span class="p">:</span> <span class="s1">'neutral'</span>
         <span class="p">},</span>
         <span class="p">{</span>
-            <span class="s1">'text'</span><span class="p">:</span> <span class="s2">"""تشهد المملكة العربية السعودية طفرة تقنية هائلة، حيث أعلنت جامعة الملك عبدالله للعلوم والتقنية (كاوست) عن إطلاق مبادرة وطنية للذكاء الاصطناعي بالتعاون مع شركات عالمية مثل جوجل ومايكروسوفت. وتهدف المبادرة إلى تعريب تقنيات الذكاء الاصطناعي وتطوير نماذج لغوية تخدم المنطقة العربية. وفي القطاع الصحي، حقق مستشفى الملك فيصل التخصصي ومركز الأبحاث إنجازاً طبياً غير مسبوق، حيث نجح فريق طبي بقيادة الدكتور سعود الشمري في تطبيق علاج جيني متطور لمرضى السرطان، مما أدى إلى نسب شفاء عالية جداً. وقد أشاد وزير الصحة فهد الجلاجل بهذا التقدم العلمي الكبير."""</span><span class="p">,</span>
+            <span class="s1">'text'</span><span class="p">:</span> <span class="s2">"""تشهد المملكة العربية السعودية طفرة تقنية هائلة، حيث أعلنت جامعة الملكعبدالله للعلوم والتقنية (كاوست) عن إطلاق مبادرة وطنية للذكاء الاصطناعي بالتعاون مع شركات عالمية مثل جوجل ومايكروسوفت. وتهدف المبادرة إلى تعريب تقنيات الذكاء الاصطناعي وتطوير نماذج لغوية تخدم المنطقة العربية. وفي القطاع الصحي، حقق مستشفى الملك فيصل التخصصي ومركز الأبحاث إنجازاً طبياً غير مسبوق، حيث نجح فريق طبي بقيادة الدكتور سعود الشمري في تطبيق علاج جيني متطور لمرضى السرطان، مما أدى إلى نسب شفاء عالية جداً. وقد أشاد وزير الصحة فهد الجلاجل بهذا التقدم العلمي الكبير."""</span><span class="p">,</span>
             <span class="s1">'reference_summary'</span><span class="p">:</span> <span class="s2">"أطلقت كاوست مبادرة للذكاء الاصطناعي مع جوجل ومايكروسوفت. حقق مستشفى الملك فيصل التخصصي إنجازاً طبياً بقيادة سعود الشمري."</span><span class="p">,</span>
             <span class="s1">'entities'</span><span class="p">:</span> <span class="p">[{</span><span class="s1">'text'</span><span class="p">:</span> <span class="s1">'كاوست'</span><span class="p">,</span> <span class="s1">'label'</span><span class="p">:</span> <span class="s1">'ORG'</span><span class="p">},</span> <span class="p">{</span><span class="s1">'text'</span><span class="p">:</span> <span class="s1">'جوجل'</span><span class="p">,</span> <span class="s1">'label'</span><span class="p">:</span> <span class="s1">'ORG'</span><span class="p">},</span> <span class="p">{</span><span class="s1">'text'</span><span class="p">:</span> <span class="s1">'مايكروسوفت'</span><span class="p">,</span> <span class="s1">'label'</span><span class="p">:</span> <span class="s1">'ORG'</span><span class="p">},</span> <span class="p">{</span><span class="s1">'text'</span><span class="p">:</span> <span class="s1">'مستشفى الملك فيصل التخصصي'</span><span class="p">,</span> <span class="s1">'label'</span><span class="p">:</span> <span class="s1">'ORG'</span><span class="p">},</span> <span class="p">{</span><span class="s1">'text'</span><span class="p">:</span> <span class="s1">'سعود الشمري'</span><span class="p">,</span> <span class="s1">'label'</span><span class="p">:</span> <span class="s1">'PERS'</span><span class="p">},</span> <span class="p">{</span><span class="s1">'text'</span><span class="p">:</span> <span class="s1">'فهد الجلاجل'</span><span class="p">,</span> <span class="s1">'label'</span><span class="p">:</span> <span class="s1">'PERS'</span><span class="p">}],</span>
             <span class="s1">'sentiment'</span><span class="p">:</span> <span class="s1">'positive'</span>
@@ -8016,6 +8188,7 @@ camel_data -i disambig-mle-calima-msa-r13</p>
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
 <pre>  📊 Topic Modeling: Gensim
+  🌍 Loading Ollama with gemma3:4b (LLM-based Multilingual Model)...
 
 ======================================================================
 📄 DETAILED ANALYSIS (LARGE DOCS)
@@ -8036,8 +8209,11 @@ camel_data -i disambig-mle-calima-msa-r13</p>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>   [AraBART]: اعلنت شركه ارامكو السعوديه، عملاق النفط العالمي واكبر شركه طاقه في العالم من حيث القيمه السوقيه، الي...
-🏷️ NER (CAMeL):
+<pre>   [LangExtract]: Here's a concise summary of the text in Arabic:
+
+**بلغت أرامكو السعودية أرباحًا صافية قياسية تجاوزت ...
+   [AraBART]: اعلنت شركه ارامكو السعوديه، عملاق النفط العالمي واكبر شركه طاقه في العالم من حيث القيمه السوقيه، الي...
+🏷️ NER:
 </pre>
 </div>
 </div>
@@ -8055,19 +8231,25 @@ camel_data -i disambig-mle-calima-msa-r13</p>
 😊 Sentiment:
    True: mixed | Pred: positive
 
-📂 Document 2 (88 words)
+📂 Document 2 (87 words)
 📝 Summarization:
+   [LangExtract]: Here’s a concise summary of the Arabic text in Arabic:
+
+**تلقت القمة العربية الطارئة في الأردن الضوء...
    [AraBART]: اختتمت القمه العربيه الطارئه اعمالها في العاصمه الاردنيه عمان، وسط حضور رفيع المستوي من قاده الدول ا...
-🏷️ NER (CAMeL):
-   Entities found: عمان, عبدالله الثاني, عبدالله, محمد بن سلمان, عبدالفتاح السيسي, سوريا...
+🏷️ NER:
+   Entities found: عمان, عبدالله الثاني, محمد بن سلمان, عبدالفتاح السيسي, سوريا, واليمن...
 😊 Sentiment:
    True: neutral | Pred: neutral
 
-📂 Document 3 (87 words)
+📂 Document 3 (86 words)
 📝 Summarization:
-   [AraBART]: تشهد المملكه العربيه السعوديه طفره تقنيه هائله، حيث اعلنت جامعه الملك عبدالله للعلوم والتقنيه (كاوست...
-🏷️ NER (CAMeL):
-   Entities found: المملكة العربية السعودية, جامعة الملك عبدالله للعلوم والتقنية, كاوست, جوجل, ومايكروسوفت, الملك فيصل التخصصي...
+   [LangExtract]: Here's a concise summary of the text in Arabic:
+
+**تُشهد السعودية طفرة تقنية بفضل مبادرة كاوست للذكا...
+   [AraBART]: تشهد المملكه العربيه السعوديه طفره تقنيه هائله، حيث اعلنت جامعه الملكعبدالله للعلوم والتقنيه (كاوست)...
+🏷️ NER:
+   Entities found: المملكة العربية السعودية, جامعة الملكعبدالله للعلوم والتقنية, كاوست, جوجل, ومايكروسوفت, الملك فيصل التخصصي...
 😊 Sentiment:
    True: positive | Pred: positive
 
@@ -8076,19 +8258,26 @@ camel_data -i disambig-mle-calima-msa-r13</p>
 ======================================================================
 
 📝 SUMMARIZATION (ROUGE-1)
-  mT5-XLSum       : 0.2186
-  Sumy-LexRank    : 0.1873
-  Sumy-LSA        : 0.1873
-  AraBART         : 0.1844
+  mT5-XLSum       : 0.2083
+  Sumy-LexRank    : 0.1828
+  Sumy-LSA        : 0.1828
+  AraBART         : 0.1798
+  LangExtract     : 0.1526
 
 🏷️ NER (F1 Score)
-  CAMeL           : 0.8669
-  Stanza          : 0.7397
-  Hatmimoha       : 0.7011
+  CAMeL           : 0.8413
+  LangExtract     : 0.7564
+  Stanza          : 0.7143
+  Hatmimoha       : 0.6088
 
 😊 SENTIMENT ACCURACY: 0.67
 
-📊 TOPIC COHERENCE: 0.6749
+📊 TOPIC COHERENCE: 0.5343
+
+🌍 LANGEXTRACT TOPIC ANALYSIS:
+   Doc 1 Topics: Here’s a list of 3-5 key topics/phrases representing the main subjects of the Arabic text:, **Aramco Financial Results:** (النتائج المالية لأرامكو) - The core of the text focuses on Aramco’s exceptional profits and performance., **Strategic Partnerships:** (اتفاقيات شراكة استراتيجية) -  The text highlights Aramco’s new partnerships with TotalEnergies and Shell.
+   Doc 2 Topics: Here’s a list of 3-5 key topics/phrases represented in the Arabic text:, **The Arab Emergency Summit:** This is the overarching event and the primary focus of the text., **The Situation in the Middle East (Explosive Situation):** The text repeatedly highlights the instability and conflict within the region as the central concern.
+   Doc 3 Topics: Here’s a list of 3-5 key topics/phrases representing the main subjects of the Arabic text:, **Artificial Intelligence (AI) Initiative:** The central focus is the national AI initiative launched by KAUST., **Arabic Localization of AI:** A key goal of the initiative is to adapt AI technologies for the Arab region.
 </pre>
 </div>
 </div>

@@ -1,38 +1,41 @@
-"""
-# Install CAMeL Tools
-pip install camel-tools scikit-learn networkx numpy
-
-# Download required models
-camel_data -i ner-arabert                    # NER (541 MB)
-camel_data -i sentiment-analysis-arabert     # Sentiment (541 MB)
-camel_data -i morphology-db-msa-r13          # Morphology (40 MB)
-camel_data -i disambig-mle-calima-msa-r13    # Disambiguation (88 MB)
-
-Components:
-- Preprocessing & Lemmatization (CAMeL Tools)
-- Named Entity Recognition (AraBERT)
-- Sentiment Analysis (CAMeL Tools)
-- Topic Modeling (LDA)
-- Extractive Summarization (TextRank)
-- Abstractive Summarization (mT5 & AraT5 & AraBART)
-- Accuracy benchmarks for all components
-- ROUGE scores for summarization
-- F1/Precision/Recall for NER
-- Accuracy for Sentiment
-- Coherence for Topic Modeling
-
-Summarization:
-  1. Sumy-LexRank, TextRank, LSA
-  2. TF-IDF Baseline
-  3. mT5-XLSum (Abstractive)
-  4. AraBART (Abstractive)
-
-NER Comparison:
-  1. CAMeL Tools (AraBERT)
-  2. Stanford Stanza
-  3. Hatmimoha (BERT)
-
-"""
+# # Arabic Documents Summarization, NER & Topic Modeling
+# 
+# ### Install CAMeL Tools
+# pip install camel-tools scikit-learn networkx numpy
+# 
+# ### Download required models
+# camel_data -i ner-arabert                    
+# camel_data -i sentiment-analysis-arabert     
+# camel_data -i morphology-db-msa-r13          
+# camel_data -i disambig-mle-calima-msa-r13    
+# 
+# ## Components:
+# - Preprocessing & Lemmatization (CAMeL Tools)
+# - Named Entity Recognition (AraBERT)
+# - Sentiment Analysis (CAMeL Tools)
+# - Topic Modeling (LDA)
+# - Extractive Summarization (TextRank)
+# - Abstractive Summarization (mT5 & AraT5 & AraBART)
+# - Accuracy benchmarks for all components
+# - ROUGE scores for summarization
+# - F1/Precision/Recall for NER
+# - Accuracy for Sentiment
+# - Coherence for Topic Modeling
+# 
+# ### Summarization:
+#   1. Sumy-LexRank, TextRank, LSA
+#   2. TF-IDF Baseline
+#   3. mT5-XLSum (Abstractive)
+#   4. AraBART (Abstractive)
+#   5. LangExtract (Google's Multilingual Model)
+#   6. LLM-Only Benchmark (gemma3:4b on Ollama)
+# 
+# ### NER Comparison:
+#   1. CAMeL Tools (AraBERT)
+#   2. Stanford Stanza
+#   3. Hatmimoha (BERT)
+#   4. LangExtract (Google's Multilingual Model)
+#   5. LLM-Only Benchmark (gemma3:4b on Ollama)
 
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -41,9 +44,10 @@ import warnings
 import numpy as np
 import torch
 import nltk
+import time
 
 # =============================================
-# 🛠️ SETUP & IMPORTS
+# SETUP & IMPORTS
 # =============================================
 try:
     nltk.data.find('tokenizers/punkt')
@@ -97,9 +101,17 @@ try:
 except ImportError:
     STANZA_AVAILABLE = False
 
+# LangExtract
+try:
+    import ollama
+    LANGEXTRACT_AVAILABLE = True
+except ImportError:
+    LANGEXTRACT_AVAILABLE = False
+
 warnings.filterwarnings('ignore')
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DEVICE_ID = 0 if torch.cuda.is_available() else -1
+
 
 # =============================================
 # 1. METRICS
@@ -163,6 +175,7 @@ class ArabicPreprocessor:
             lemma = analyses[0].get('lex', t) if analyses else t
             lemmas.append(re.sub(r'_\d+$', '', lemma))
         return [dediac_ar(l) for l in lemmas]
+
 
 # =============================================
 # 2. MODELS (NER, Summ, Topics)
@@ -286,6 +299,330 @@ class TopicModeler:
         return lda.print_topics(num_words=5), CoherenceModel(model=lda, texts=texts, dictionary=dic, coherence='c_v').get_coherence()
 
 # =============================================
+# 2.5 LANGEXTRACT INTEGRATION
+# =============================================
+class LangExtractWrapper:
+    def __init__(self):
+        self.available = LANGEXTRACT_AVAILABLE
+        if self.available:
+            print("  🌍 Loading Ollama with gemma3:4b (LLM-based Multilingual Model)...")
+            try:
+                # Test connection to Ollama
+                ollama.chat(model='gemma3:4b', messages=[{'role': 'user', 'content': 'test'}], options={'num_predict': 10})
+            except Exception as e:
+                print(f"  ❌ Error connecting to Ollama: {e}")
+                self.available = False
+
+    def summarize(self, text):
+        if not self.available: return None
+        try:
+            # Prepare a prompt for summarization
+            prompt = f"""Please provide a concise summary of the following Arabic text. The summary should be in Arabic and capture the main points:
+
+{text[:2000]}"""  # Limit text length to prevent context overflow
+            
+            response = ollama.chat(
+                model='gemma3:4b',
+                messages=[{'role': 'user', 'content': prompt}],
+                options={'num_predict': 150}  # Limit response length
+            )
+            
+            summary = response['message']['content'].strip()
+            return summary if summary else None
+        except Exception as e:
+            print(f"Ollama summary error: {e}")
+            return None
+
+    def extract_entities(self, text):
+        if not self.available: return []
+        try:
+            # Prepare a prompt for NER
+            prompt = f"""Extract named entities from the following Arabic text. Return the results in JSON format with 'text' and 'label' fields. Labels should be one of: 'PERS' (person), 'ORG' (organization), 'LOC' (location), 'MISC' (miscellaneous).
+
+Example format:
+[
+    {{"text": "أرامكو السعودية", "label": "ORG"}},
+    {{"text": "أمين الناصر", "label": "PERS"}}
+]
+
+Text:
+{text[:2000]}"""  # Limit text length to prevent context overflow
+            
+            response = ollama.chat(
+                model='gemma3:4b',
+                messages=[{'role': 'user', 'content': prompt}],
+                options={'num_predict': 300}  # Allow more space for entity extraction
+            )
+            
+            result = response['message']['content'].strip()
+            
+            # Parse the response to extract entities
+            entities = []
+            import json as json_module
+            import re as re_module
+            
+            # Look for JSON-like structure in the response
+            json_match = re_module.search(r'\[(.*?)\]', result, re_module.DOTALL)
+            if json_match:
+                try:
+                    # Attempt to parse the JSON portion
+                    json_str = '[' + json_match.group(1) + ']'
+                    # Clean up the JSON string to make it valid
+                    json_str = re_module.sub(r'\\*', '', json_str)  # Remove extra escapes
+                    entities = json_module.loads(json_str)
+                except:
+                    # If JSON parsing fails, try to extract entities with regex
+                    # Look for patterns that match the expected format
+                    for line in result.split('\n'):
+                        # Match patterns like: {"text": "...", "label": "..."}
+                        matches = re_module.findall(r'"text":\s*"([^"]+)"[^}}}]*"label":\s*"([^"]+)"', line)
+                        for text_val, label_val in matches:
+                            entities.append({"text": text_val, "label": label_val})
+            else:
+                # If no JSON format found, try to extract using regex patterns
+                # Look for patterns in the response
+                lines = result.split('\n')
+                for line in lines:
+                    # Look for patterns that might contain entity information
+                    if 'text' in line.lower() and 'label' in line.lower():
+                        # Extract using regex
+                        text_match = re_module.search(r'"text":\s*"([^"]+)"', line)
+                        label_match = re_module.search(r'"label":\s*"([^"]+)"', line)
+                        if text_match and label_match:
+                            entities.append({
+                                "text": text_match.group(1),
+                                "label": label_match.group(1)
+                            })
+            
+            return entities
+        except Exception as e:
+            print(f"Ollama NER error: {e}")
+            return []
+
+    def extract_topics(self, text):
+        if not self.available: return []
+        try:
+            # Prepare a prompt for topic extraction
+            prompt = f"""Identify the main topics discussed in the following Arabic text. Return a list of 3-5 key topics/phrases that represent the main subjects.
+
+Text:
+{text[:2000]}"""
+            
+            response = ollama.chat(
+                model='gemma3:4b',
+                messages=[{'role': 'user', 'content': prompt}],
+                options={'num_predict': 100}
+            )
+            
+            result = response['message']['content'].strip()
+            
+            # Extract topics from the response
+            topics = []
+            import re as re_module
+            for line in result.split('\n'):
+                # Remove numbering or bullet points
+                cleaned_line = re_module.sub(r'^[\d\-\*\)\.]+\s*', '', line).strip()
+                if cleaned_line and len(cleaned_line) > 3:  # Meaningful topic
+                    topics.append(cleaned_line)
+            
+            # Limit to top 3 topics
+            return topics[:3]
+        except Exception as e:
+            print(f"Ollama topic extraction error: {e}")
+            return []
+
+
+# =============================================
+# 2.6 LLM-ONLY BENCHMARK (GEMMA3:4B ON OLLAMA)
+# =============================================
+class LLMOnlyBenchmark:
+    def __init__(self):
+        self.available = LANGEXTRACT_AVAILABLE  # Reuse the ollama availability check
+        if self.available:
+            print("  🤖 Loading LLM-Only Benchmark (gemma3:4b on Ollama)...")
+            try:
+                # Test connection to Ollama
+                ollama.chat(model='gemma3:4b', messages=[{'role': 'user', 'content': 'test'}], options={'num_predict': 10})
+            except Exception as e:
+                print(f"  ❌ Error connecting to Ollama: {e}")
+                self.available = False
+
+    def run_all_tasks(self, text):
+        """Run all NLP tasks using only the LLM (gemma3:4b)"""
+        if not self.available:
+            return {'summary': None, 'entities': [], 'topics': [], 'sentiment': 'unknown'}
+
+        results = {}
+
+        # 1. Summarization
+        start_time = time.time()
+        results['summary'] = self.summarize(text)
+        results['summary_runtime'] = time.time() - start_time
+
+        # 2. NER
+        start_time = time.time()
+        results['entities'] = self.extract_entities(text)
+        results['ner_runtime'] = time.time() - start_time
+
+        # 3. Topic Modeling
+        start_time = time.time()
+        results['topics'] = self.extract_topics(text)
+        results['topic_runtime'] = time.time() - start_time
+
+        # 4. Sentiment Analysis (integrated in topic extraction)
+        start_time = time.time()
+        results['sentiment'] = self.extract_sentiment(text)
+        results['sentiment_runtime'] = time.time() - start_time
+
+        return results
+
+    def summarize(self, text):
+        if not self.available: return None
+        try:
+            # Prepare a prompt for summarization
+            prompt = f"""Please provide a concise summary of the following Arabic text. The summary should be in Arabic and capture the main points:
+
+{text[:2000]}"""  # Limit text length to prevent context overflow
+
+            response = ollama.chat(
+                model='gemma3:4b',
+                messages=[{'role': 'user', 'content': prompt}],
+                options={'num_predict': 150}  # Limit response length
+            )
+
+            summary = response['message']['content'].strip()
+            return summary if summary else None
+        except Exception as e:
+            print(f"LLM-only summary error: {e}")
+            return None
+
+    def extract_entities(self, text):
+        if not self.available: return []
+        try:
+            # Prepare a prompt for NER
+            prompt = f"""Extract named entities from the following Arabic text. Return the results in JSON format with 'text' and 'label' fields. Labels should be one of: 'PERS' (person), 'ORG' (organization), 'LOC' (location), 'MISC' (miscellaneous).
+
+Example format:
+[
+    {{"text": "أرامكو السعودية", "label": "ORG"}},
+    {{"text": "أمين الناصر", "label": "PERS"}}
+]
+
+Text:
+{text[:2000]}"""  # Limit text length to prevent context overflow
+
+            response = ollama.chat(
+                model='gemma3:4b',
+                messages=[{'role': 'user', 'content': prompt}],
+                options={'num_predict': 300}  # Allow more space for entity extraction
+            )
+
+            result = response['message']['content'].strip()
+
+            # Parse the response to extract entities
+            entities = []
+            import json as json_module
+            import re as re_module
+
+            # Look for JSON-like structure in the response
+            json_match = re_module.search(r'\[(.*?)\]', result, re_module.DOTALL)
+            if json_match:
+                try:
+                    # Attempt to parse the JSON portion
+                    json_str = '[' + json_match.group(1) + ']'
+                    # Clean up the JSON string to make it valid
+                    json_str = re_module.sub(r'\\*', '', json_str)  # Remove extra escapes
+                    entities = json_module.loads(json_str)
+                except:
+                    # If JSON parsing fails, try to extract entities with regex
+                    # Look for patterns that match the expected format
+                    for line in result.split('\n'):
+                        # Match patterns like: {"text": "...", "label": "..."}
+                        matches = re_module.findall(r'"text":\s*"([^"]+)"[^}}}]*"label":\s*"([^"]+)"', line)
+                        for text_val, label_val in matches:
+                            entities.append({"text": text_val, "label": label_val})
+            else:
+                # If no JSON format found, try to extract using regex patterns
+                # Look for patterns in the response
+                lines = result.split('\n')
+                for line in lines:
+                    # Look for patterns that might contain entity information
+                    if 'text' in line.lower() and 'label' in line.lower():
+                        # Extract using regex
+                        text_match = re_module.search(r'"text":\s*"([^"]+)"', line)
+                        label_match = re_module.search(r'"label":\s*"([^"]+)"', line)
+                        if text_match and label_match:
+                            entities.append({
+                                "text": text_match.group(1),
+                                "label": label_match.group(1)
+                            })
+
+            return entities
+        except Exception as e:
+            print(f"LLM-only NER error: {e}")
+            return []
+
+    def extract_topics(self, text):
+        if not self.available: return []
+        try:
+            # Prepare a prompt for topic extraction
+            prompt = f"""Identify the main topics discussed in the following Arabic text. Return a list of 3-5 key topics/phrases that represent the main subjects.
+
+Text:
+{text[:2000]}"""
+
+            response = ollama.chat(
+                model='gemma3:4b',
+                messages=[{'role': 'user', 'content': prompt}],
+                options={'num_predict': 100}
+            )
+
+            result = response['message']['content'].strip()
+
+            # Extract topics from the response
+            topics = []
+            import re as re_module
+            for line in result.split('\n'):
+                # Remove numbering or bullet points
+                cleaned_line = re_module.sub(r'^[\d\-\*\)\.]+\s*', '', line).strip()
+                if cleaned_line and len(cleaned_line) > 3:  # Meaningful topic
+                    topics.append(cleaned_line)
+
+            # Limit to top 3 topics
+            return topics[:3]
+        except Exception as e:
+            print(f"LLM-only topic extraction error: {e}")
+            return []
+
+    def extract_sentiment(self, text):
+        if not self.available: return 'unknown'
+        try:
+            # Prepare a prompt for sentiment analysis
+            prompt = f"""Analyze the sentiment of the following Arabic text. Return only one word: 'positive', 'negative', or 'neutral'.
+
+Text:
+{text[:1000]}"""  # Limit text length
+
+            response = ollama.chat(
+                model='gemma3:4b',
+                messages=[{'role': 'user', 'content': prompt}],
+                options={'num_predict': 20}  # Very short response
+            )
+
+            sentiment = response['message']['content'].strip().lower()
+            # Normalize the sentiment response
+            if 'positive' in sentiment or 'pos' in sentiment:
+                return 'positive'
+            elif 'negative' in sentiment or 'neg' in sentiment:
+                return 'negative'
+            else:
+                return 'neutral'
+        except Exception as e:
+            print(f"LLM-only sentiment analysis error: {e}")
+            return 'unknown'
+
+
+# =============================================
 # 3. PIPELINE EXECUTION
 # =============================================
 class UltimatePipeline:
@@ -299,67 +636,180 @@ class UltimatePipeline:
         self.topics = TopicModeler(self.prep)
         self.metrics = EvaluationMetrics()
         self.sentiment = SentimentAnalyzer.pretrained()
+        self.lang_extract = LangExtractWrapper()
+        self.llm_only = LLMOnlyBenchmark()
 
     def run(self, data):
         scores = {'summ': {}, 'ner': {}, 'sent': []}
-        
+        runtimes = {'summ': {}, 'ner': {}, 'sent': [], 'topics': 0}
+
         print("\n" + "="*70)
         print("📄 DETAILED ANALYSIS (LARGE DOCS)")
         print("="*70)
 
+        # Track LLM-only sentiment scores separately
+        llm_only_sent_scores = []
+
         for i, d in enumerate(data):
             text = d['text']
             print(f"\n📂 Document {i+1} ({len(text.split())} words)")
-            
+
+            # Run LLM-only benchmark for this document (to get all results at once)
+            llm_result = {}
+            if self.llm_only.available:
+                llm_result = self.llm_only.run_all_tasks(text)
+
             # 1. Summarization
             print("📝 Summarization:")
+            start_time = time.time()
             sums = self.summ.summarize(text)
+            summ_runtime = time.time() - start_time
+
+            # Add LangExtract summarization
+            if self.lang_extract.available:
+                start_time = time.time()
+                le_summary = self.lang_extract.summarize(text)
+                le_summ_runtime = time.time() - start_time
+                if le_summary:
+                    sums['LangExtract'] = le_summary
+                    r1 = self.metrics.rouge_scores(d['reference_summary'], le_summary)
+                    scores['summ'].setdefault('LangExtract', []).append(r1)
+                    runtimes['summ'].setdefault('LangExtract', []).append(le_summ_runtime)
+                    print(f"   [LangExtract]: {le_summ_runtime:.2f}s - {le_summary[:100]}...")
+
+            # Add LLM-only summarization
+            if self.llm_only.available and llm_result.get('summary'):
+                llm_summary = llm_result.get('summary')
+                llm_summ_runtime = llm_result.get('summary_runtime', 0)
+                sums['LLM-Only'] = llm_summary
+                r1 = self.metrics.rouge_scores(d['reference_summary'], llm_summary)
+                scores['summ'].setdefault('LLM-Only', []).append(r1)
+                runtimes['summ'].setdefault('LLM-Only', []).append(llm_summ_runtime)
+                print(f"   [LLM-Only]: {llm_summ_runtime:.2f}s - {llm_summary[:100]}...")
+
             for m, s in sums.items():
-                r1 = self.metrics.rouge_scores(d['reference_summary'], s)
-                scores['summ'].setdefault(m, []).append(r1)
-                if m == 'AraBART': print(f"   [{m}]: {s[:100]}...")
-            
+                if m not in ['LangExtract', 'LLM-Only']:  # Already processed
+                    r1 = self.metrics.rouge_scores(d['reference_summary'], s)
+                    scores['summ'].setdefault(m, []).append(r1)
+                    runtimes['summ'].setdefault(m, []).append(summ_runtime)
+                    if m == 'AraBART': print(f"   [{m}]: {summ_runtime:.2f}s - {s[:100]}...")
+
             # 2. NER
-            print("🏷️ NER (CAMeL):")
+            print("🏷️ NER:")
+            start_time = time.time()
             ents = self.ner.extract_all(text)
+            ner_runtime = time.time() - start_time
+
+            # Add LangExtract NER
+            if self.lang_extract.available:
+                start_time = time.time()
+                le_entities = self.lang_extract.extract_entities(text)
+                le_ner_runtime = time.time() - start_time
+                if le_entities:
+                    ents['LangExtract'] = le_entities
+                    f1 = self.metrics.ner_metrics(d['entities'], le_entities)
+                    scores['ner'].setdefault('LangExtract', []).append(f1)
+                    runtimes['ner'].setdefault('LangExtract', []).append(le_ner_runtime)
+
+            # Add LLM-only NER
+            if self.llm_only.available and llm_result.get('entities'):
+                llm_entities = llm_result.get('entities', [])
+                ents['LLM-Only'] = llm_entities
+                f1 = self.metrics.ner_metrics(d['entities'], llm_entities)
+                scores['ner'].setdefault('LLM-Only', []).append(f1)
+                runtimes['ner'].setdefault('LLM-Only', []).append(llm_result.get('ner_runtime', 0))
+
             for m, e in ents.items():
-                f1 = self.metrics.ner_metrics(d['entities'], e)
-                scores['ner'].setdefault(m, []).append(f1)
-            
+                if m not in ['LangExtract', 'LLM-Only']:  # Already processed
+                    f1 = self.metrics.ner_metrics(d['entities'], e)
+                    scores['ner'].setdefault(m, []).append(f1)
+                    runtimes['ner'].setdefault(m, []).append(ner_runtime)
+
             c_ents = [f"{x['text']}" for x in ents.get('CAMeL', [])[:6]]
             print(f"   Entities found: {', '.join(c_ents)}...")
 
             # 3. Sentiment
             print("😊 Sentiment:")
+            start_time = time.time()
             pred_sent = self.sentiment.predict([text])[0]
+            sent_runtime = time.time() - start_time
             # Normalize prediction for comparison
             p_label = 'positive' if 'positive' in pred_sent or 'pos' in pred_sent else ('negative' if 'negative' in pred_sent or 'neg' in pred_sent else 'neutral')
             t_label = d.get('sentiment', 'neutral')
-            print(f"   True: {t_label} | Pred: {p_label}")
+            print(f"   True: {t_label} | Pred: {p_label} | Runtime: {sent_runtime:.2f}s")
             scores['sent'].append(1 if p_label == t_label else 0)
+            runtimes['sent'].append(sent_runtime)
 
-        # 4. Global Results
-        print("\n" + "="*70)
-        print("🏆 FINAL BENCHMARK SCORES")
-        print("="*70)
-        
-        print("\n📝 SUMMARIZATION (ROUGE-1)")
-        avgs = {k: np.mean(v) for k, v in scores['summ'].items()}
-        for k, v in sorted(avgs.items(), key=lambda x: x[1], reverse=True):
-            print(f"  {k:<15} : {v:.4f}")
+            # Add LLM-only sentiment
+            if self.llm_only.available:
+                llm_sentiment = llm_result.get('sentiment', 'unknown')
+                llm_sent_runtime = llm_result.get('sentiment_runtime', 0)
+                print(f"   [LLM-Only]: True: {t_label} | Pred: {llm_sentiment} | Runtime: {llm_sent_runtime:.2f}s")
+                # Track LLM-only sentiment accuracy
+                llm_only_sent_scores.append(1 if llm_sentiment == t_label else 0)
 
-        print("\n🏷️ NER (F1 Score)")
-        avgs_ner = {k: np.mean(v) for k, v in scores['ner'].items()}
-        for k, v in sorted(avgs_ner.items(), key=lambda x: x[1], reverse=True):
-            print(f"  {k:<15} : {v:.4f}")
-
-        print(f"\n😊 SENTIMENT ACCURACY: {np.mean(scores['sent']):.2f}")
-        
+        # 4. Topic Modeling
+        print("📊 Topic Modeling:")
+        start_time = time.time()
         topics, coh = self.topics.run([d['text'] for d in data])
-        print(f"\n📊 TOPIC COHERENCE: {coh:.4f}")
+        topic_runtime = time.time() - start_time
+        runtimes['topics'] = topic_runtime
+
+        # 5. LangExtract Topic Modeling Evaluation
+        if self.lang_extract.available:
+            print("🌍 LANGEXTRACT TOPIC ANALYSIS:")
+            for i, d in enumerate(data):
+                start_time = time.time()
+                le_topics = self.lang_extract.extract_topics(d['text'])
+                le_topic_runtime = time.time() - start_time
+                if le_topics:
+                    print(f"   Doc {i+1} Topics: {', '.join(le_topics[:3])} | Runtime: {le_topic_runtime:.2f}s")
+
+        # 6. LLM-Only Topic Modeling Evaluation
+        if self.llm_only.available:
+            print("🤖 LLM-ONLY TOPIC ANALYSIS:")
+            for i, d in enumerate(data):
+                llm_result_doc = self.llm_only.run_all_tasks(d['text'])  # Run again for each document
+                llm_topics = llm_result_doc.get('topics', [])
+                llm_topic_runtime = llm_result_doc.get('topic_runtime', 0)
+                if llm_topics:
+                    print(f"   Doc {i+1} Topics: {', '.join(llm_topics[:3])} | Runtime: {llm_topic_runtime:.2f}s")
+
+        # 7. Global Results
+        print("\n" + "="*70)
+        print("🏆 FINAL BENCHMARK SCORES (Accuracy & Runtime)")
+        print("="*70)
+
+        print("\n📝 SUMMARIZATION (ROUGE-1 & Runtime)")
+        avg_scores = {k: np.mean(v) for k, v in scores['summ'].items()}
+        avg_runtimes = {k: np.mean(v) for k, v in runtimes['summ'].items()}
+        combined_results = [(k, avg_scores[k], avg_runtimes[k]) for k in avg_scores.keys()]
+        sorted_results = sorted(combined_results, key=lambda x: x[1], reverse=True)  # Sort by accuracy
+        for k, acc, rt in sorted_results:
+            print(f"  {k:<15} : Acc={acc:.4f}, Time={rt:.2f}s")
+
+        print("\n🏷️ NER (F1 Score & Runtime)")
+        avg_scores_ner = {k: np.mean(v) for k, v in scores['ner'].items()}
+        avg_runtimes_ner = {k: np.mean(v) for k, v in runtimes['ner'].items()}
+        combined_results_ner = [(k, avg_scores_ner[k], avg_runtimes_ner[k]) for k in avg_scores_ner.keys()]
+        sorted_results_ner = sorted(combined_results_ner, key=lambda x: x[1], reverse=True)  # Sort by accuracy
+        for k, acc, rt in sorted_results_ner:
+            print(f"  {k:<15} : Acc={acc:.4f}, Time={rt:.2f}s")
+
+        avg_sent_acc = np.mean(scores['sent'])
+        avg_sent_rt = np.mean(runtimes['sent'])
+        print(f"\n😊 SENTIMENT (Accuracy & Runtime): Acc={avg_sent_acc:.2f}, Time={avg_sent_rt:.2f}s")
+
+        # Add LLM-only sentiment accuracy if available
+        if self.llm_only.available and llm_only_sent_scores:
+            llm_only_sent_acc = np.mean(llm_only_sent_scores)
+            print(f"   LLM-Only Sentiment Accuracy: {llm_only_sent_acc:.2f}")
+
+        print(f"\n📊 TOPIC MODELING (Coherence & Runtime): Coherence={coh:.4f}, Time={topic_runtime:.2f}s")
+
 
 # =============================================
-# DATA (LARGE & FORMATTED)
+# DATA
 # =============================================
 def get_large_data():
     return [
@@ -370,20 +820,24 @@ def get_large_data():
             'sentiment': 'mixed'
         },
         {
-            'text': """اختتمت القمة العربية الطارئة أعمالها في العاصمة الأردنية عمان، وسط حضور رفيع المستوى من قادة الدول العربية. وقد هيمن على جدول الأعمال الوضع المتفجر في المنطقة. وأكد العاهل الأردني الملك عبدالله الثاني في كلمته الافتتاحية على ضرورة التضامن العربي لمواجهة التحديات الراهنة. وعلى هامش القمة، عقد الملك عبدالله اجتماعات ثنائية مغلقة مع ولي العهد السعودي الأمير محمد بن سلمان، والرئيس المصري عبدالفتاح السيسي، حيث تم بحث سبل تنسيق المواقف. وناقشت القمة باستفاضة الأوضاع المأساوية في سوريا واليمن، داعية المجتمع الدولي إلى تحمل مسؤولياته لإنهاء الصراعات ووقف نزيف الدم.""",
-            'reference_summary': "ختام القمة العربية في عمان بدعوات للتضامن، ولقاءات بين الملك عبدالله ومحمد بن سلمان والسيسي.",
+            'text': """اختتمت القمة العربية الطارئة أعمالها في العاصمة الأردنية عمان، وسط حضور رفيع المستوى من قادة الدول العربية. وقد هيمن على جدول الأعمال الوضع المتفجر في المنطقة. وأكد العاهل الأردني الملك عبدالله الثاني في كلمته الافتتاحية على ضرورة التضامن العربي لمواجهة التحديات الراهنة. وعلى هامش القمة، عقد الملكعبدالله اجتماعات ثنائية مغلقة مع ولي العهد السعودي الأمير محمد بن سلمان، والرئيس المصري عبدالفتاح السيسي، حيث تم بحث سبل تنسيق المواقف. وناقشت القمة باستفاضة الأوضاع المأساوية في سوريا واليمن، داعية المجتمع الدولي إلى تحمل مسؤولياته لإنهاء الصراعات ووقف نزيف الدم.""",
+            'reference_summary': "ختام القمة العربية في عمان بدعوات للتضامن، ولقاءات بين الملكعبدالله ومحمد بن سلمان والسيسي.",
             'entities': [{'text': 'عمان', 'label': 'LOC'}, {'text': 'عبدالله الثاني', 'label': 'PERS'}, {'text': 'محمد بن سلمان', 'label': 'PERS'}, {'text': 'عبدالفتاح السيسي', 'label': 'PERS'}, {'text': 'سوريا', 'label': 'LOC'}, {'text': 'اليمن', 'label': 'LOC'}],
             'sentiment': 'neutral'
         },
         {
-            'text': """تشهد المملكة العربية السعودية طفرة تقنية هائلة، حيث أعلنت جامعة الملك عبدالله للعلوم والتقنية (كاوست) عن إطلاق مبادرة وطنية للذكاء الاصطناعي بالتعاون مع شركات عالمية مثل جوجل ومايكروسوفت. وتهدف المبادرة إلى تعريب تقنيات الذكاء الاصطناعي وتطوير نماذج لغوية تخدم المنطقة العربية. وفي القطاع الصحي، حقق مستشفى الملك فيصل التخصصي ومركز الأبحاث إنجازاً طبياً غير مسبوق، حيث نجح فريق طبي بقيادة الدكتور سعود الشمري في تطبيق علاج جيني متطور لمرضى السرطان، مما أدى إلى نسب شفاء عالية جداً. وقد أشاد وزير الصحة فهد الجلاجل بهذا التقدم العلمي الكبير.""",
+            'text': """تشهد المملكة العربية السعودية طفرة تقنية هائلة، حيث أعلنت جامعة الملكعبدالله للعلوم والتقنية (كاوست) عن إطلاق مبادرة وطنية للذكاء الاصطناعي بالتعاون مع شركات عالمية مثل جوجل ومايكروسوفت. وتهدف المبادرة إلى تعريب تقنيات الذكاء الاصطناعي وتطوير نماذج لغوية تخدم المنطقة العربية. وفي القطاع الصحي، حقق مستشفى الملك فيصل التخصصي ومركز الأبحاث إنجازاً طبياً غير مسبوق، حيث نجح فريق طبي بقيادة الدكتور سعود الشمري في تطبيق علاج جيني متطور لمرضى السرطان، مما أدى إلى نسب شفاء عالية جداً. وقد أشاد وزير الصحة فهد الجلاجل بهذا التقدم العلمي الكبير.""",
             'reference_summary': "أطلقت كاوست مبادرة للذكاء الاصطناعي مع جوجل ومايكروسوفت. حقق مستشفى الملك فيصل التخصصي إنجازاً طبياً بقيادة سعود الشمري.",
             'entities': [{'text': 'كاوست', 'label': 'ORG'}, {'text': 'جوجل', 'label': 'ORG'}, {'text': 'مايكروسوفت', 'label': 'ORG'}, {'text': 'مستشفى الملك فيصل التخصصي', 'label': 'ORG'}, {'text': 'سعود الشمري', 'label': 'PERS'}, {'text': 'فهد الجلاجل', 'label': 'PERS'}],
             'sentiment': 'positive'
         }
     ]
 
+
 if __name__ == "__main__":
     UltimatePipeline().run(get_large_data())
+
+
+
 
 
