@@ -1,14 +1,17 @@
 # # Arabic Documents Summarization, NER & Topic Modeling
-# 
+#
 # ### Install CAMeL Tools
-# pip install camel-tools scikit-learn networkx numpy
-# 
+# pip install camel-tools scikit-learn networkx numpy ollama
+#
 # ### Download required models
-# camel_data -i ner-arabert                    
-# camel_data -i sentiment-analysis-arabert     
-# camel_data -i morphology-db-msa-r13          
-# camel_data -i disambig-mle-calima-msa-r13    
-# 
+# camel_data -i ner-arabert
+# camel_data -i sentiment-analysis-arabert
+# camel_data -i morphology-db-msa-r13
+# camel_data -i disambig-mle-calima-msa-r13
+#
+# # Install Ollama and pull gemma3:4b model
+# ollama pull gemma3:4b
+#
 # ## Components:
 # - Preprocessing & Lemmatization (CAMeL Tools)
 # - Named Entity Recognition (AraBERT)
@@ -16,12 +19,13 @@
 # - Topic Modeling (LDA)
 # - Extractive Summarization (TextRank)
 # - Abstractive Summarization (mT5 & AraT5 & AraBART)
-# - Accuracy benchmarks for all components
+# - LLM-Only Benchmark (gemma3:4b on Ollama)
+# - Accuracy and Runtime benchmarks for all components
 # - ROUGE scores for summarization
 # - F1/Precision/Recall for NER
 # - Accuracy for Sentiment
 # - Coherence for Topic Modeling
-# 
+#
 # ### Summarization:
 #   1. Sumy-LexRank, TextRank, LSA
 #   2. TF-IDF Baseline
@@ -29,7 +33,7 @@
 #   4. AraBART (Abstractive)
 #   5. LangExtract (Google's Multilingual Model)
 #   6. LLM-Only Benchmark (gemma3:4b on Ollama)
-# 
+#
 # ### NER Comparison:
 #   1. CAMeL Tools (AraBERT)
 #   2. Stanford Stanza
