@@ -625,6 +625,195 @@ Text:
             print(f"LLM-only sentiment analysis error: {e}")
             return 'unknown'
 
+# =============================================
+# 2.7 QWEN3-ONLY BENCHMARK (QWEN3:4B ON OLLAMA)
+# =============================================
+class Qwen3OnlyBenchmark:
+    def __init__(self):
+        self.available = LANGEXTRACT_AVAILABLE  # Reuse the ollama availability check
+        if self.available:
+            print("  🤖 Loading Qwen3-Only Benchmark (qwen3:4b on Ollama)...")
+            try:
+                # Test connection to Ollama
+                ollama.chat(model='qwen3:4b', messages=[{'role': 'user', 'content': 'test'}], options={'num_predict': 10})
+            except Exception as e:
+                print(f"  ❌ Error connecting to Ollama: {e}")
+                self.available = False
+
+    def run_all_tasks(self, text):
+        """Run all NLP tasks using only the LLM (qwen3:4b)"""
+        if not self.available:
+            return {'summary': None, 'entities': [], 'topics': [], 'sentiment': 'unknown'}
+
+        results = {}
+
+        # 1. Summarization
+        start_time = time.time()
+        results['summary'] = self.summarize(text)
+        results['summary_runtime'] = time.time() - start_time
+
+        # 2. NER
+        start_time = time.time()
+        results['entities'] = self.extract_entities(text)
+        results['ner_runtime'] = time.time() - start_time
+
+        # 3. Topic Modeling
+        start_time = time.time()
+        results['topics'] = self.extract_topics(text)
+        results['topic_runtime'] = time.time() - start_time
+
+        # 4. Sentiment Analysis (integrated in topic extraction)
+        start_time = time.time()
+        results['sentiment'] = self.extract_sentiment(text)
+        results['sentiment_runtime'] = time.time() - start_time
+
+        return results
+
+    def summarize(self, text):
+        if not self.available: return None
+        try:
+            # Prepare a prompt for summarization
+            prompt = f"""Please provide a concise summary of the following Arabic text. The summary should be in Arabic and capture the main points:
+
+{text[:2000]}"""  # Limit text length to prevent context overflow
+
+            response = ollama.chat(
+                model='qwen3:4b',
+                messages=[{'role': 'user', 'content': prompt}],
+                options={'num_predict': 150}  # Limit response length
+            )
+
+            summary = response['message']['content'].strip()
+            return summary if summary else None
+        except Exception as e:
+            print(f"Qwen3-only summary error: {e}")
+            return None
+
+    def extract_entities(self, text):
+        if not self.available: return []
+        try:
+            # Prepare a prompt for NER
+            prompt = f"""Extract named entities from the following Arabic text. Return the results in JSON format with 'text' and 'label' fields. Labels should be one of: 'PERS' (person), 'ORG' (organization), 'LOC' (location), 'MISC' (miscellaneous).
+
+Example format:
+[
+    {{"text": "أرامكو السعودية", "label": "ORG"}},
+    {{"text": "أمين الناصر", "label": "PERS"}}
+]
+
+Text:
+{text[:2000]}"""  # Limit text length to prevent context overflow
+
+            response = ollama.chat(
+                model='qwen3:4b',
+                messages=[{'role': 'user', 'content': prompt}],
+                options={'num_predict': 300}  # Allow more space for entity extraction
+            )
+
+            result = response['message']['content'].strip()
+
+            # Parse the response to extract entities
+            entities = []
+            import json as json_module
+            import re as re_module
+
+            # Look for JSON-like structure in the response
+            json_match = re_module.search(r'\[(.*?)\]', result, re_module.DOTALL)
+            if json_match:
+                try:
+                    # Attempt to parse the JSON portion
+                    json_str = '[' + json_match.group(1) + ']'
+                    # Clean up the JSON string to make it valid
+                    json_str = re_module.sub(r'\\*', '', json_str)  # Remove extra escapes
+                    entities = json_module.loads(json_str)
+                except:
+                    # If JSON parsing fails, try to extract entities with regex
+                    # Look for patterns that match the expected format
+                    for line in result.split('\n'):
+                        # Match patterns like: {"text": "...", "label": "..."}
+                        matches = re_module.findall(r'"text":\s*"([^"]+)"[^}}}]*"label":\s*"([^"]+)"', line)
+                        for text_val, label_val in matches:
+                            entities.append({"text": text_val, "label": label_val})
+            else:
+                # If no JSON format found, try to extract using regex patterns
+                # Look for patterns in the response
+                lines = result.split('\n')
+                for line in lines:
+                    # Look for patterns that might contain entity information
+                    if 'text' in line.lower() and 'label' in line.lower():
+                        # Extract using regex
+                        text_match = re_module.search(r'"text":\s*"([^"]+)"', line)
+                        label_match = re_module.search(r'"label":\s*"([^"]+)"', line)
+                        if text_match and label_match:
+                            entities.append({
+                                "text": text_match.group(1),
+                                "label": label_match.group(1)
+                            })
+
+            return entities
+        except Exception as e:
+            print(f"Qwen3-only NER error: {e}")
+            return []
+
+    def extract_topics(self, text):
+        if not self.available: return []
+        try:
+            # Prepare a prompt for topic extraction
+            prompt = f"""Identify the main topics discussed in the following Arabic text. Return a list of 3-5 key topics/phrases that represent the main subjects.
+
+Text:
+{text[:2000]}"""
+
+            response = ollama.chat(
+                model='qwen3:4b',
+                messages=[{'role': 'user', 'content': prompt}],
+                options={'num_predict': 100}
+            )
+
+            result = response['message']['content'].strip()
+
+            # Extract topics from the response
+            topics = []
+            import re as re_module
+            for line in result.split('\n'):
+                # Remove numbering or bullet points
+                cleaned_line = re_module.sub(r'^[\d\-\*\)\.]+\s*', '', line).strip()
+                if cleaned_line and len(cleaned_line) > 3:  # Meaningful topic
+                    topics.append(cleaned_line)
+
+            # Limit to top 3 topics
+            return topics[:3]
+        except Exception as e:
+            print(f"Qwen3-only topic extraction error: {e}")
+            return []
+
+    def extract_sentiment(self, text):
+        if not self.available: return 'unknown'
+        try:
+            # Prepare a prompt for sentiment analysis
+            prompt = f"""Analyze the sentiment of the following Arabic text. Return only one word: 'positive', 'negative', or 'neutral'.
+
+Text:
+{text[:1000]}"""  # Limit text length
+
+            response = ollama.chat(
+                model='qwen3:4b',
+                messages=[{'role': 'user', 'content': prompt}],
+                options={'num_predict': 20}  # Very short response
+            )
+
+            sentiment = response['message']['content'].strip().lower()
+            # Normalize the sentiment response
+            if 'positive' in sentiment or 'pos' in sentiment:
+                return 'positive'
+            elif 'negative' in sentiment or 'neg' in sentiment:
+                return 'negative'
+            else:
+                return 'neutral'
+        except Exception as e:
+            print(f"Qwen3-only sentiment analysis error: {e}")
+            return 'unknown'
+
 
 # =============================================
 # 3. PIPELINE EXECUTION
@@ -642,6 +831,7 @@ class UltimatePipeline:
         self.sentiment = SentimentAnalyzer.pretrained()
         self.lang_extract = LangExtractWrapper()
         self.llm_only = LLMOnlyBenchmark()
+        self.qwen3_only = Qwen3OnlyBenchmark()
 
     def run(self, data):
         scores = {'summ': {}, 'ner': {}, 'sent': []}
@@ -653,6 +843,7 @@ class UltimatePipeline:
 
         # Track LLM-only sentiment scores separately
         llm_only_sent_scores = []
+        qwen3_only_sent_scores = []
 
         for i, d in enumerate(data):
             text = d['text']
@@ -662,6 +853,11 @@ class UltimatePipeline:
             llm_result = {}
             if self.llm_only.available:
                 llm_result = self.llm_only.run_all_tasks(text)
+            
+            # Run Qwen3-only benchmark for this document (to get all results at once)
+            qwen3_result = {}
+            if self.qwen3_only.available:
+                qwen3_result = self.qwen3_only.run_all_tasks(text)
 
             # 1. Summarization
             print("📝 Summarization:")
@@ -691,8 +887,18 @@ class UltimatePipeline:
                 runtimes['summ'].setdefault('LLM-Only', []).append(llm_summ_runtime)
                 print(f"   [LLM-Only]: {llm_summ_runtime:.2f}s - {llm_summary[:100]}...")
 
+            # Add Qwen3-only summarization
+            if self.qwen3_only.available and qwen3_result.get('summary'):
+                qwen3_summary = qwen3_result.get('summary')
+                qwen3_summ_runtime = qwen3_result.get('summary_runtime', 0)
+                sums['Qwen3-Only'] = qwen3_summary
+                r1 = self.metrics.rouge_scores(d['reference_summary'], qwen3_summary)
+                scores['summ'].setdefault('Qwen3-Only', []).append(r1)
+                runtimes['summ'].setdefault('Qwen3-Only', []).append(qwen3_summ_runtime)
+                print(f"   [Qwen3-Only]: {qwen3_summ_runtime:.2f}s - {qwen3_summary[:100]}...")
+
             for m, s in sums.items():
-                if m not in ['LangExtract', 'LLM-Only']:  # Already processed
+                if m not in ['LangExtract', 'LLM-Only', 'Qwen3-Only']:  # Already processed
                     r1 = self.metrics.rouge_scores(d['reference_summary'], s)
                     scores['summ'].setdefault(m, []).append(r1)
                     runtimes['summ'].setdefault(m, []).append(summ_runtime)
@@ -723,8 +929,16 @@ class UltimatePipeline:
                 scores['ner'].setdefault('LLM-Only', []).append(f1)
                 runtimes['ner'].setdefault('LLM-Only', []).append(llm_result.get('ner_runtime', 0))
 
+            # Add Qwen3-only NER
+            if self.qwen3_only.available and qwen3_result.get('entities'):
+                qwen3_entities = qwen3_result.get('entities', [])
+                ents['Qwen3-Only'] = qwen3_entities
+                f1 = self.metrics.ner_metrics(d['entities'], qwen3_entities)
+                scores['ner'].setdefault('Qwen3-Only', []).append(f1)
+                runtimes['ner'].setdefault('Qwen3-Only', []).append(qwen3_result.get('ner_runtime', 0))
+
             for m, e in ents.items():
-                if m not in ['LangExtract', 'LLM-Only']:  # Already processed
+                if m not in ['LangExtract', 'LLM-Only', 'Qwen3-Only']:  # Already processed
                     f1 = self.metrics.ner_metrics(d['entities'], e)
                     scores['ner'].setdefault(m, []).append(f1)
                     runtimes['ner'].setdefault(m, []).append(ner_runtime)
@@ -751,6 +965,14 @@ class UltimatePipeline:
                 print(f"   [LLM-Only]: True: {t_label} | Pred: {llm_sentiment} | Runtime: {llm_sent_runtime:.2f}s")
                 # Track LLM-only sentiment accuracy
                 llm_only_sent_scores.append(1 if llm_sentiment == t_label else 0)
+            
+            # Add Qwen3-only sentiment
+            if self.qwen3_only.available:
+                qwen3_sentiment = qwen3_result.get('sentiment', 'unknown')
+                qwen3_sent_runtime = qwen3_result.get('sentiment_runtime', 0)
+                print(f"   [Qwen3-Only]: True: {t_label} | Pred: {qwen3_sentiment} | Runtime: {qwen3_sent_runtime:.2f}s")
+                # Track Qwen3-only sentiment accuracy
+                qwen3_only_sent_scores.append(1 if qwen3_sentiment == t_label else 0)
 
         # 4. Topic Modeling
         print("📊 Topic Modeling:")
@@ -778,6 +1000,16 @@ class UltimatePipeline:
                 llm_topic_runtime = llm_result_doc.get('topic_runtime', 0)
                 if llm_topics:
                     print(f"   Doc {i+1} Topics: {', '.join(llm_topics[:3])} | Runtime: {llm_topic_runtime:.2f}s")
+
+        # 6.5 Qwen3-Only Topic Modeling Evaluation
+        if self.qwen3_only.available:
+            print("🤖 QWEN3-ONLY TOPIC ANALYSIS:")
+            for i, d in enumerate(data):
+                qwen3_result_doc = self.qwen3_only.run_all_tasks(d['text'])  # Run again for each document
+                qwen3_topics = qwen3_result_doc.get('topics', [])
+                qwen3_topic_runtime = qwen3_result_doc.get('topic_runtime', 0)
+                if qwen3_topics:
+                    print(f"   Doc {i+1} Topics: {', '.join(qwen3_topics[:3])} | Runtime: {qwen3_topic_runtime:.2f}s")
 
         # 7. Global Results
         print("\n" + "="*70)
@@ -808,6 +1040,11 @@ class UltimatePipeline:
         if self.llm_only.available and llm_only_sent_scores:
             llm_only_sent_acc = np.mean(llm_only_sent_scores)
             print(f"   LLM-Only Sentiment Accuracy: {llm_only_sent_acc:.2f}")
+        
+        # Add Qwen3-only sentiment accuracy if available
+        if self.qwen3_only.available and qwen3_only_sent_scores:
+            qwen3_only_sent_acc = np.mean(qwen3_only_sent_scores)
+            print(f"   Qwen3-Only Sentiment Accuracy: {qwen3_only_sent_acc:.2f}")
 
         print(f"\n📊 TOPIC MODELING (Coherence & Runtime): Coherence={coh:.4f}, Time={topic_runtime:.2f}s")
 
